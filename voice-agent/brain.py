@@ -64,7 +64,7 @@ def _load_system_prompt() -> str:
         print(f"[Brain] ⚠️  Could not read system prompt: {exc}. Using fallback.")
 
     return (
-        "You are Nova, a helpful voice assistant. "
+        "You are Clovis, a helpful voice assistant. "
         "Always reply with a JSON object containing: "
         "intent (string), params (object), response (string). "
         "Be concise — responses are spoken aloud."

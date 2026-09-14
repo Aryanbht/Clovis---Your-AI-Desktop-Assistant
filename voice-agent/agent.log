@@ -238,3 +238,15 @@
 [2026-09-14 23:22:54] INTENT=delete_folder        | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/aryankejalwe'}
              TOOL_OUT=Folder deleted: C:\Users\bhatn\OneDrive\Desktop\aryankejalwe | SPOKEN=Deleting the folder aryankejalwe on your desktop.
 
+[2026-09-14 23:25:31] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+[2026-09-14 23:26:27] INTENT=open_whatsapp        | PARAMS={}
+             TOOL_OUT=Opening Whatsapp.                                            | SPOKEN=Opening WhatsApp for you.
+
+[2026-09-14 23:27:50] INTENT=create_folder        | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/ab'}
+             TOOL_OUT=Folder created: C:\Users\bhatn\OneDrive\Desktop\ab           | SPOKEN=Created a folder called ab on your desktop.
+
+[2026-09-14 23:28:23] INTENT=delete_file          | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/ab'}
+             TOOL_OUT=Folder deleted: C:\Users\bhatn\OneDrive\Desktop\ab           | SPOKEN=Folder called ab on your desktop has been deleted.
+

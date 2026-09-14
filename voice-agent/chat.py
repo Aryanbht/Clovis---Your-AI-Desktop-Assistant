@@ -1,5 +1,5 @@
 """
-chat.py – Simple text-only interface for Nova. No mic, no TTS required.
+chat.py – Simple text-only interface for Clovis. No mic, no TTS required.
 
 Run:
     python chat.py
@@ -18,7 +18,7 @@ import router
 
 BANNER = """
 ╔══════════════════════════════════════════╗
-║   🤖  Nova  —  Text Chat Mode         ║
+║   🤖  Clovis  —  Text Chat Mode       ║
 ║   Type a command and press Enter.        ║
 ║   Type  exit  to quit.                   ║
 ╚══════════════════════════════════════════╝
@@ -64,22 +64,22 @@ def main() -> None:
         try:
             user_input = input("You: ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\n[Nova] Goodbye, Aryan!")
+            print("\n[Clovis] Goodbye, Aryan!")
             sys.exit(0)
 
         if not user_input:
             continue
 
         if user_input.lower() in {"exit", "quit", "bye", "goodbye"}:
-            print("[Nova] Goodbye, Aryan!")
+            print("[Clovis] Goodbye, Aryan!")
             sys.exit(0)
 
         response = process(user_input)
 
         if response:
-            print(f"[Nova] {response}\n")
+            print(f"[Clovis] {response}\n")
         else:
-            print("[Nova] (no response)\n")
+            print("[Clovis] (no response)\n")
 
 
 if __name__ == "__main__":

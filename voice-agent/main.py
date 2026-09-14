@@ -1,5 +1,5 @@
 """
-main.py - Entry point for the Nova voice assistant.
+main.py - Entry point for the Clovis voice assistant.
 
 Run modes
 ─────────
@@ -42,7 +42,7 @@ import tts
 def _startup_checks(mode: str) -> None:
     """Print banner, check Ollama availability, and speak the boot message."""
     print("=" * 55)
-    print("  🤖  Nova voice assistant")
+    print("  🤖  Clovis voice assistant")
     print(f"      Model  : {config.OLLAMA_MODEL}")
     print(f"      Whisper: {config.WHISPER_MODEL_SIZE}")
     print(f"      Wake   : '{config.WAKE_WORD}'")
@@ -62,13 +62,13 @@ def _startup_checks(mode: str) -> None:
 
     if mode == "text":
         print("[Main] 📝  Text mode — type your commands below.\n")
-        tts.speak("Nova online. Text mode active.")
+        tts.speak("Clovis online. Text mode active.")
     elif mode == "hybrid":
         print("[Main] 🔀  Hybrid mode — press Enter to type or say nothing to use voice.\n")
-        tts.speak("Nova online. Hybrid mode active.")
+        tts.speak("Clovis online. Hybrid mode active.")
     else:
         print(f"[Main] Say '{config.WAKE_WORD.capitalize()}' to activate.\n")
-        tts.speak("Nova online. Waiting for wake word.")
+        tts.speak("Clovis online. Waiting for wake word.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -162,7 +162,7 @@ def _respond(text: str) -> None:
     """Print and speak a response."""
     if not text:
         return
-    print(f"[Nova] {text}")
+    print(f"[Clovis] {text}")
     tts.speak(text)
 
 
@@ -224,8 +224,8 @@ def _hybrid_loop() -> None:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="nova",
-        description="Nova voice assistant",
+        prog="clovis",
+        description="Clovis voice assistant",
     )
 
     group = parser.add_mutually_exclusive_group()

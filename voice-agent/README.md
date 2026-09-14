@@ -1,4 +1,4 @@
-# 🤖 Nova - Your AI Desktop Assistant
+# 🤖 Clovis - Your AI Desktop Assistant
 
 A locally-running AI assistant for Windows, powered by **Ollama** (LLM) and **Faster-Whisper** (STT). Understands natural language commands to control your PC, manage files, open any app, and more — completely offline.
 
@@ -6,9 +6,9 @@ A locally-running AI assistant for Windows, powered by **Ollama** (LLM) and **Fa
 
 ## ✨ Features
 
-| Category | What Nova can do |
+| Category | What Clovis can do |
 |---|---|
-| 🗣️ **Voice / Text** | Wake-word detection ("Nova"), speech-to-text, or type commands directly |
+| 🗣️ **Voice / Text** | Wake-word detection ("Clovis"), speech-to-text, or type commands directly |
 | 📁 **File System** | Create, delete, list, and move files and folders |
 | 🚀 **App Launcher** | Open **any** installed app — Start Menu, Store, Steam, Epic, cracked installs, anything |
 | 🌐 **Browser** | Open URLs and search the web |
@@ -125,7 +125,7 @@ python chat.py
 python main.py
 ```
 
-> Say **"Nova"** to activate, then speak your command.
+> Say **"Clovis"** to activate, then speak your command.
 
 ---
 
@@ -135,7 +135,7 @@ Edit [`config.py`](config.py) to customize:
 
 ```python
 USERNAME          = "Aryan"              # Your name
-WAKE_WORD         = "nova"             # Wake word (case-insensitive)
+WAKE_WORD         = "clovis"           # Wake word (case-insensitive)
 OLLAMA_MODEL      = "qwen2.5-coder:3b"  # LLM model
 WHISPER_MODEL_SIZE = "base"             # STT model (tiny / base / small)
 ```
@@ -200,7 +200,7 @@ Every dispatched intent is logged to [`agent.log`](agent.log) with a timestamp:
 | `what's the date` | `tell_date` | "today's date?" |
 | `<number> + - * / <number>` | `quick_math` | "what is 12 times 7" |
 | `volume up / down / mute` | `volume_*` | "turn up the volume" |
-| `hey / hello / hi` | `greet` | "hey nova" |
+| `hey / hello / hi` | `greet` | "hey clovis" |
 
 Everything else is sent to the LLM.
 

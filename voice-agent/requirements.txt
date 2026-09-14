@@ -7,3 +7,4 @@ pyttsx3
 edge-tts
 pyautogui
 ollama
+pycaw

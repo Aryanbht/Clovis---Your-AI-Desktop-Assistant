@@ -22,9 +22,12 @@ import re
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import TypedDict
 
 import pyautogui
+
+from config import DESKTOP_PATH
 
 
 # ── Return type ────────────────────────────────────────────────────────────────
@@ -195,11 +198,88 @@ def _launch_app(app_name: str) -> str:
     return "not_found"
 
 
-def _adjust_volume(direction: str, steps: int = 5) -> None:
-    """Adjust system volume using PyAutoGUI media keys."""
-    key = "volumeup" if direction == "up" else "volumedown"
-    for _ in range(steps):
-        pyautogui.press(key)
+def _get_master_volume_endpoint():
+    """Return Windows' default master-volume endpoint, or an error message."""
+    if sys.platform != "win32":
+        return None, "Direct volume control is only supported on Windows."
+
+    try:
+        from ctypes import POINTER, cast
+
+        from comtypes import CLSCTX_ALL
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
+        device = AudioUtilities.GetSpeakers()
+
+        # pycaw 2025+ exposes the endpoint directly. Keep the older fallback
+        # for installations that still expose the Windows COM Activate method.
+        endpoint = getattr(device, "EndpointVolume", None)
+        if endpoint is not None:
+            return endpoint, None
+
+        interface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        return cast(interface, POINTER(IAudioEndpointVolume)), None
+    except ImportError:
+        return None, "Volume control needs the 'pycaw' package. Run: pip install -r requirements.txt"
+    except Exception as exc:
+        return None, f"Couldn't access the Windows volume control: {exc}"
+
+
+def _change_master_volume(delta: int) -> tuple[int, int] | tuple[None, str]:
+    """Change master volume by an exact number of percentage points."""
+    endpoint, error = _get_master_volume_endpoint()
+    if endpoint is None:
+        return None, error
+
+    current = round(endpoint.GetMasterVolumeLevelScalar() * 100)
+    target = max(0, min(100, current + delta))
+    endpoint.SetMasterVolumeLevelScalar(target / 100, None)
+    return current, target
+
+
+def _volume_amount(transcript: str) -> int:
+    """Extract a requested percentage-point change, defaulting to 10."""
+    match = re.search(r"\b(?:by\s+)?(\d{1,3})\b", transcript)
+    if not match:
+        return 10
+    return max(0, min(int(match.group(1)), 100))
+
+
+def _handle_folder_screenshot_sequence(transcript: str) -> RouteResult | None:
+    """Run "create folder on Desktop, then save a screenshot there" in order.
+
+    The generic screenshot regex intentionally matches short requests, but it
+    must not discard a preceding folder instruction in a longer sentence.
+    """
+    match = re.search(
+        r"\b(?:create|make)\s+(?:a\s+)?folder"
+        r"(?:\s+(?:called|named|by))?\s+(?P<folder>.+?)"
+        r"\s+(?:on|in)\s+(?:the\s+)?desktop\b"
+        r".*?\b(?:take|capture)\s+(?:the\s+|a\s+)?screenshot\b"
+        r".*?\b(?:save|store)\b",
+        transcript.lower(),
+    )
+    if not match:
+        return None
+
+    folder_name = match.group("folder").strip(" .")
+    if not folder_name:
+        return None
+
+    from tools import file_ops, system_ops
+
+    folder_path = Path(DESKTOP_PATH) / folder_name
+    folder_result = file_ops.create_folder(str(folder_path))
+    if folder_result.lower().startswith(("permission denied", "failed")):
+        return RouteResult(response=folder_result, action=None)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    screenshot_path = folder_path / f"screenshot_{timestamp}.png"
+    screenshot_result = system_ops.take_screenshot(str(screenshot_path))
+    return RouteResult(
+        response=f"{folder_result} {screenshot_result}",
+        action="folder_screenshot_sequence",
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -214,6 +294,13 @@ def fast_route(transcript: str) -> RouteResult | None:
     or ``None`` to signal that the caller should use the LLM path.
     """
     lower = transcript.lower().strip()
+
+    # Compound operations must run before the single-action regex table.  For
+    # example, otherwise the word "screenshot" would cause the folder request
+    # earlier in the sentence to be ignored.
+    compound_result = _handle_folder_screenshot_sequence(lower)
+    if compound_result is not None:
+        return compound_result
 
     for intent, pattern in _PATTERNS.items():
         if pattern.search(lower):
@@ -282,18 +369,19 @@ def _handle_open_app(transcript: str) -> tuple[str, str]:
 
 
 def _handle_volume_up(transcript: str) -> tuple[str, str]:
-    # Check if a specific level is mentioned, e.g. "volume up by 10"
-    match = re.search(r"\b(\d+)\b", transcript)
-    steps = int(match.group(1)) // 2 if match else 5
-    _adjust_volume("up", steps=max(1, min(steps, 20)))
-    return "Volume increased.", "volume_up"
+    amount = _volume_amount(transcript)
+    current, result = _change_master_volume(amount)
+    if current is None:
+        return result, None
+    return f"Volume increased from {current}% to {result}%.", "volume_up"
 
 
 def _handle_volume_down(transcript: str) -> tuple[str, str]:
-    match = re.search(r"\b(\d+)\b", transcript)
-    steps = int(match.group(1)) // 2 if match else 5
-    _adjust_volume("down", steps=max(1, min(steps, 20)))
-    return "Volume decreased.", "volume_down"
+    amount = _volume_amount(transcript)
+    current, result = _change_master_volume(-amount)
+    if current is None:
+        return result, None
+    return f"Volume decreased from {current}% to {result}%.", "volume_down"
 
 
 def _handle_mute(transcript: str) -> tuple[str, str]:

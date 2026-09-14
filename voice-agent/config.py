@@ -39,4 +39,4 @@ OLLAMA_MODEL = "qwen2.5:3b-instruct"
 WHISPER_MODEL_SIZE = "base"
 
 # Wake word (lower-case; detection is case-insensitive)
-WAKE_WORD = "nova"
+WAKE_WORD = "clovis"
