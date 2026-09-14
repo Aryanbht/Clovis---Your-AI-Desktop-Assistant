@@ -149,7 +149,16 @@ def dispatch(result: dict[str, Any]) -> str:
         tool_output = f"Error executing '{intent}': {exc}"
         print(f"[Dispatcher] ❌ {tool_output}")
 
-    print(f"[Dispatcher]   tool_output: {tool_output[:120]}")
+    _first_line = tool_output.split("\n")[0][:120]
+    print(f"[Dispatcher]   tool_output: {_first_line}")
+
+    # ── For data intents, the tool output IS the answer ────────────────────────
+    # The LLM generates a vague summary before the tool runs, so it can't know
+    # the actual content. For listing operations, print and return the real data.
+    _DATA_INTENTS = {"list_files"}
+    if intent in _DATA_INTENTS:
+        _log_event(intent, params, tool_output=tool_output, response=tool_output)
+        return tool_output          # chat.py / main.py prints this — no extra print here
 
     # ── Log and return ─────────────────────────────────────────────────────────
     _log_event(intent, params, tool_output=tool_output, response=response)

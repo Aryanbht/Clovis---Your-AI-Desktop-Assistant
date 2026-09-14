@@ -82,3 +82,106 @@
 [2026-09-14 16:54:31] INTENT=open_app             | PARAMS={'app_name': 'hollow knight'}
              TOOL_OUT=Found 'hollow knight' but couldn't launch it: [WinError 1223] The operation was canceled by the user: 'D:\\Games\\Hollow | SPOKEN=Opening Hollow Knight.
 
+[2026-09-14 19:48:21] INTENT=list_files           | PARAMS={'path': 'D:/'}
+             TOOL_OUT=[DIR]  $RECYCLE.BIN
+[DIR]  A and S Prozect
+[DIR]  AI Person
+[DIR]  anotherone
+[DIR]  ARYAN BHATNAGAR
+[DIR]  Aryan Bhatna | SPOKEN=Listing folders in D:/
+
+[2026-09-14 19:49:26] INTENT=list_files           | PARAMS={'path': 'D:/'}
+             TOOL_OUT=[DIR]  $RECYCLE.BIN
+[DIR]  A and S Prozect
+[DIR]  AI Person
+[DIR]  anotherone
+[DIR]  ARYAN BHATNAGAR
+[DIR]  Aryan Bhatna | SPOKEN=Listing all folders on D drive.
+
+[2026-09-14 19:53:35] INTENT=list_files           | PARAMS={'path': 'D:/'}
+             TOOL_OUT=📂 Contents of  D:\  (60 folder(s), 2 file(s))
+────────────────────────────────────────────────────
+  [DIR]  $RECYCLE.BIN | SPOKEN=📂 Contents of  D:\  (60 folder(s), 2 file(s))
+────────────────────────────────────────────────────
+  [DIR]  $RECYCLE.BIN
+
+[2026-09-14 19:55:03] INTENT=list_files           | PARAMS={'path': 'D:/zero waste folder'}
+             TOOL_OUT='D:/zero waste folder' does not exist.                       | SPOKEN='D:/zero waste folder' does not exist.
+
+[2026-09-14 20:03:34] INTENT=list_files           | PARAMS={'path': 'D:/zero waste folder'}
+             TOOL_OUT=📂 Contents of  D:\Zero Waste  (4 folder(s), 2 file(s))
+────────────────────────────────────────────────────
+  [DIR]  .gi | SPOKEN=📂 Contents of  D:\Zero Waste  (4 folder(s), 2 file(s))
+────────────────────────────────────────────────────
+  [DIR]  .gi
+
+[2026-09-14 20:05:18] INTENT=list_files           | PARAMS={'path': 'C:/Cakewalk/Content'}
+             TOOL_OUT='C:/Cakewalk/Content' does not exist.                        | SPOKEN='C:/Cakewalk/Content' does not exist.
+
+[2026-09-14 20:30:38] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Documents/Cakewalk Content'}
+             TOOL_OUT=📂 Contents of  C:\Users\bhatn\OneDrive\Documents\Cakewalk  (2 folder(s), 0 file(s))
+──────────────────────────────────── | SPOKEN=📂 Contents of  C:\Users\bhatn\OneDrive\Documents\Cakewalk  (2 folder(s), 0 file(s))
+────────────────────────────────────
+
+[2026-09-14 20:37:33] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/Documents/Cakewalk Content'}
+             TOOL_OUT=📂 Contents of  C:\Users\bhatn\OneDrive\Documents\Cakewalk  (2 folder(s), 0 file(s))
+──────────────────────────────────── | SPOKEN=📂 Contents of  C:\Users\bhatn\OneDrive\Documents\Cakewalk  (2 folder(s), 0 file(s))
+────────────────────────────────────
+
+[2026-09-14 21:37:18] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Sample Packs'}
+             TOOL_OUT='C:/Users/bhatn/OneDrive/Sample Packs' does not exist.       | SPOKEN='C:/Users/bhatn/OneDrive/Sample Packs' does not exist.
+
+[2026-09-14 21:38:25] INTENT=list_files           | PARAMS={'path': 'C:/Program Files (x86)/Cakewalk/Cakewalk Content'}
+             TOOL_OUT=📂 Contents of  C:\Program Files (x86)\Cakewalk\Cakewalk Theme Editor  (8 folder(s), 24 file(s))
+──────────────────────── | SPOKEN=📂 Contents of  C:\Program Files (x86)\Cakewalk\Cakewalk Theme Editor  (8 folder(s), 24 file(s))
+────────────────────────
+
+[2026-09-14 21:39:27] INTENT=list_files           | PARAMS={'path': 'C:/dell'}
+             TOOL_OUT=📂 Contents of  C:\dell  (1 folder(s), 0 file(s))
+────────────────────────────────────────────────────
+  [DIR]  UpdatePac | SPOKEN=📂 Contents of  C:\dell  (1 folder(s), 0 file(s))
+────────────────────────────────────────────────────
+  [DIR]  UpdatePac
+
+[2026-09-14 21:40:33] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/Documents/dekho zara video'}
+             TOOL_OUT='C:/Users/bhatn/Documents/dekho zara video' does not exist.  | SPOKEN='C:/Users/bhatn/Documents/dekho zara video' does not exist.
+
+[2026-09-14 21:42:18] INTENT=list_files           | PARAMS={'path': 'D:/dekho zara/video'}
+             TOOL_OUT=📂 Contents of  D:\Dekho Zara Video  (0 folder(s), 19 file(s))
+────────────────────────────────────────────────────
+  [FI | SPOKEN=📂 Contents of  D:\Dekho Zara Video  (0 folder(s), 19 file(s))
+────────────────────────────────────────────────────
+  [FI
+
+[2026-09-14 21:45:56] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/Desktop/'}
+             TOOL_OUT=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop  (45 folder(s), 34 file(s))
+───────────────────────────────────────────── | SPOKEN=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop  (45 folder(s), 34 file(s))
+─────────────────────────────────────────────
+
+[2026-09-14 21:46:37] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Video/dekho zara/video'}
+             TOOL_OUT=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Awaaz de video  (0 folder(s), 4 file(s))
+──────────────────────────────── | SPOKEN=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Awaaz de video  (0 folder(s), 4 file(s))
+────────────────────────────────
+
+[2026-09-14 21:47:05] INTENT=list_files           | PARAMS={'path': 'D:/dekho zara/video'}
+             TOOL_OUT=📂 Contents of  D:\Dekho Zara Video  (0 folder(s), 19 file(s))
+────────────────────────────────────────────────────
+  [FI | SPOKEN=📂 Contents of  D:\Dekho Zara Video  (0 folder(s), 19 file(s))
+────────────────────────────────────────────────────
+  [FI
+
+[2026-09-14 21:50:32] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/Dekho zara Video'}
+             TOOL_OUT=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Dekho zara  (0 folder(s), 5 file(s))
+──────────────────────────────────── | SPOKEN=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Dekho zara  (0 folder(s), 5 file(s))
+────────────────────────────────────
+
+[2026-09-14 21:59:32] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/Dekho zara Video'}
+             TOOL_OUT=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Dekho zara  (0 folder(s), 5 file(s))
+──────────────────────────────────── | SPOKEN=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Dekho zara  (0 folder(s), 5 file(s))
+────────────────────────────────────
+
+[2026-09-14 22:00:00] INTENT=list_files           | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/Dekho zara video'}
+             TOOL_OUT=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Dekho zara  (0 folder(s), 5 file(s))
+──────────────────────────────────── | SPOKEN=📂 Contents of  C:\Users\bhatn\OneDrive\Desktop\Dekho zara  (0 folder(s), 5 file(s))
+────────────────────────────────────
+

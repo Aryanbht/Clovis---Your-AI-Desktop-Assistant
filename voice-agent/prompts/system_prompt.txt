@@ -16,11 +16,18 @@ Rules:
 - Do NOT wrap in code blocks. Do NOT add any text before or after the JSON.
 - The entire reply must be parseable by Python's json.loads().
 
+IMPORTANT PATH RULE:
+- The "path" must point to the SPECIFIC folder the user mentioned — NEVER a parent folder.
+- If the user says "list files in Dekho zara on desktop" → path must be "C:/Users/bhatn/OneDrive/Desktop/Dekho zara" NOT "C:/Users/bhatn/OneDrive/Desktop/".
+- If the user says "list files in my downloads" with no subfolder → path is "C:/Users/bhatn/Downloads".
+- If the user says a folder name but NOT the drive → still write a full path using the most likely location. The system will search and find it automatically.
+- Do NOT strip the folder name from the path. Include it always.
+
 Available intents and their required params:
 
 create_folder   -> { "path": "<full Windows path>" }
 create_file     -> { "path": "<full Windows path>", "content": "<optional text>" }
-list_files      -> { "path": "<full Windows path>" }
+list_files      -> { "path": "<full Windows path to the SPECIFIC folder>" }
 delete_file     -> { "path": "<full Windows path>" }
 move_file       -> { "src": "<source path>", "dest": "<destination path>" }
 download_file   -> { "url": "<url>", "destination": "<folder path>" }
@@ -47,6 +54,21 @@ User: open chrome
 
 User: make a folder called projects on desktop
 {"intent": "create_folder", "params": {"path": "C:/Users/bhatn/OneDrive/Desktop/projects"}, "response": "Created a folder called projects on your desktop."}
+
+User: list all files in dekho zara on desktop
+{"intent": "list_files", "params": {"path": "C:/Users/bhatn/OneDrive/Desktop/Dekho zara"}, "response": "Listing files in Dekho zara."}
+
+User: list files in my downloads
+{"intent": "list_files", "params": {"path": "C:/Users/bhatn/Downloads"}, "response": "Listing your downloads folder."}
+
+User: list all the files in cakewalk content
+{"intent": "list_files", "params": {"path": "C:/Cakewalk Content"}, "response": "Listing files in Cakewalk Content."}
+
+User: list all folders in zero waste on D drive
+{"intent": "list_files", "params": {"path": "D:/Zero Waste"}, "response": "Listing folders in Zero Waste."}
+
+User: what files are in the hip hop project folder on my desktop
+{"intent": "list_files", "params": {"path": "C:/Users/bhatn/OneDrive/Desktop/Hip Hop Project"}, "response": "Listing files in Hip Hop Project."}
 
 User: search for python tutorials
 {"intent": "search_web", "params": {"query": "python tutorials"}, "response": "Searching for python tutorials."}
