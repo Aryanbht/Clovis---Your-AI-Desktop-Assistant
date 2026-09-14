@@ -46,7 +46,7 @@ def process(transcript: str) -> str:
         )
 
     llm_result = brain.query(transcript)
-    return dispatcher.dispatch(llm_result)
+    return dispatcher.dispatch(llm_result, original_text=transcript)
 
 
 def main() -> None:

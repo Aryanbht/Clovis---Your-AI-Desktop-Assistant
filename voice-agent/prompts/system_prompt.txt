@@ -22,6 +22,7 @@ PURPOSE AND INTENT RULES:
 - When a website is named together with a browser (for example "on Chrome", "in Firefox", or "using Edge"), use open_url with the website URL and include the browser parameter. Do NOT use open_app for the browser in this case.
 - Use open_app only when the user wants the application itself opened, such as "open Chrome" or "launch WhatsApp".
 - For "open incognito", "open an incognito window on Chrome", or "start private browsing", use the incognito intent instead of open_app or unknown.
+- For send_whatsapp, extract the contact's name exactly as the user says it (e.g. "Shivansh Goyal") and put it in "contact_name". Never ask for or use a phone number.
 - Convert common website names to their official HTTPS URL: YouTube -> https://www.youtube.com, Gmail -> https://mail.google.com, Google -> https://www.google.com.
 - If the user says "search for <general topic> on Chrome", use search_web with the topic and browser="chrome". If the user says "search/open/browse <website name> on Chrome", open that website with open_url.
 - If the user says "search <topic> in/on incognito on Chrome", use search_web with browser="chrome" and incognito=true. Preserve the incognito requirement.
@@ -47,7 +48,7 @@ download_file   -> { "url": "<url>", "destination": "<folder path>" }
   incognito       -> { "browser": "<browser name, default chrome>" }
 open_gmail      -> {}
 compose_email   -> { "to": "<email>", "subject": "<subject>", "body": "<body>" }
-send_whatsapp   -> { "phone_number": "<country code + number>", "message": "<text>" }
+send_whatsapp   -> { "contact_name": "<name as said by user>", "message": "<text>" }
 open_telegram   -> {}
 screenshot      -> {}
 lock_screen     -> {}
@@ -94,7 +95,10 @@ User: search for python tutorials
 User: take a screenshot
 {"intent": "screenshot", "params": {}, "response": "Taking a screenshot now."}
 
-User: close google chrome
+User: message shivansh goyal on whatsapp hii bhai
+{"intent": "send_whatsapp", "params": {"contact_name": "Shivansh Goyal", "message": "hii bhai"}, "response": "Sending 'hii bhai' to Shivansh Goyal on WhatsApp."}
+
+
 {"intent": "unknown", "params": {}, "response": "I can open apps but I cannot close them yet."}
 
 Now respond to the user's message below with ONLY the JSON object:

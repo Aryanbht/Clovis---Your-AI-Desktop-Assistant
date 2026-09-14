@@ -1,66 +1,164 @@
 """
-tools/messenger.py – Messaging platform shortcuts via the system browser.
+tools/messenger.py – Messaging platform shortcuts.
+Prefers the installed WhatsApp desktop app; falls back to WhatsApp Web.
 All functions return a plain string suitable for TTS output.
 """
 
 from __future__ import annotations
 
-import urllib.parse
+import subprocess
+import time
 import webbrowser
 
-_WHATSAPP_BASE = "https://web.whatsapp.com/send"
-_TELEGRAM_URL  = "https://web.telegram.org"
+import pyautogui
+import pyperclip
 
 
-def send_whatsapp(phone_number: str, message: str) -> str:
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _is_whatsapp_installed() -> bool:
     """
-    Open WhatsApp Web with a pre-filled message to *phone_number*.
+    Return True if WhatsApp desktop app is installed on this Windows system.
+    Uses Get-StartApps (same source as app_finder) — no extra dependencies.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "powershell", "-NoProfile", "-Command",
+                "Get-StartApps | Where-Object { $_.Name -like '*WhatsApp*' } | "
+                "ConvertTo-Json -Compress"
+            ],
+            capture_output=True, text=True, timeout=8
+        )
+        output = result.stdout.strip()
+        return bool(output) and output not in ("null", "[]", "")
+    except Exception:
+        return False
+
+
+def _launch_whatsapp_app() -> None:
+    """Launch the WhatsApp desktop app via app_finder (reuses existing logic)."""
+    from tools.app_finder import find_and_launch
+    find_and_launch("whatsapp")
+
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
+def send_whatsapp(contact_name: str, message: str) -> str:
+    """
+    Send a WhatsApp message to *contact_name*.
+
+    Priority:
+      1. WhatsApp desktop app (if installed) — no browser needed.
+      2. WhatsApp Web — fallback when the desktop app is absent.
 
     Parameters
     ----------
-    phone_number : str
-        Must include the country code, digits only.
-        Examples: '919876543210' (India), '14155552671' (USA).
+    contact_name : str
+        The contact's name as it appears in WhatsApp (e.g. "Shivansh Goyal").
     message : str
-        The message text to pre-fill in the chat box.
+        The message text to send.
 
     Returns a success or failure message string.
-
-    Note
-    ----
-    WhatsApp Web must already be logged in on the browser.
-    The message is NOT sent automatically — the user still presses Enter.
     """
-    # Strip any stray characters (spaces, +, dashes) the user might include
-    clean_phone = phone_number.strip().lstrip("+").replace(" ", "").replace("-", "")
+    if not contact_name or not contact_name.strip():
+        return "Please provide a contact name."
+    if not message or not message.strip():
+        return "Please provide a message to send."
 
-    if not clean_phone.isdigit():
-        return (
-            f"Invalid phone number '{phone_number}'. "
-            "Please provide digits only with country code, e.g. 919876543210."
-        )
+    contact_name = contact_name.strip()
+    message      = message.strip()
 
-    params = urllib.parse.urlencode(
-        {"phone": clean_phone, "text": message.strip()},
-        quote_via=urllib.parse.quote,
-    )
-    url = f"{_WHATSAPP_BASE}?{params}"
-
-    try:
-        webbrowser.open(url)
-        return f"Opening WhatsApp chat with +{clean_phone}. Press Enter to send."
-    except Exception as exc:
-        return f"Failed to open WhatsApp Web: {exc}"
+    if _is_whatsapp_installed():
+        return _send_via_desktop_app(contact_name, message)
+    else:
+        return _send_via_web(contact_name, message)
 
 
 def open_telegram() -> str:
     """
     Open Telegram Web in the system's default browser.
-
     Returns a success or failure message string.
     """
     try:
-        webbrowser.open(_TELEGRAM_URL)
+        webbrowser.open("https://web.telegram.org")
         return "Opening Telegram Web in your browser."
     except Exception as exc:
         return f"Failed to open Telegram: {exc}"
+
+
+# ── Private implementations ───────────────────────────────────────────────────
+
+def _send_via_desktop_app(contact_name: str, message: str) -> str:
+    """
+    Automate the WhatsApp desktop app:
+      1. Launch / bring to foreground.
+      2. Press Ctrl+F to focus the search bar.
+      3. Type the contact name and press Enter.
+      4. Type the message and press Enter to send.
+    """
+    try:
+        print(f"[Messenger] WhatsApp desktop app detected — launching …")
+        _launch_whatsapp_app()
+        time.sleep(4)          # wait for the app window to appear / come to front
+
+        # Focus the search bar (Ctrl+F works in the WhatsApp Windows app)
+        pyautogui.hotkey("ctrl", "f")
+        time.sleep(0.8)
+
+        # Clear any previous text and type the contact name
+        pyautogui.hotkey("ctrl", "a")
+        pyperclip.copy(contact_name)
+        pyautogui.hotkey("ctrl", "v")
+        time.sleep(2.0)        # let search results populate
+
+        # Select the first result and open the chat
+        pyautogui.press("down")
+        time.sleep(0.4)
+        pyautogui.press("enter")
+        time.sleep(1.2)
+
+        # Type and send the message
+        pyperclip.copy(message)
+        pyautogui.hotkey("ctrl", "v")
+        time.sleep(0.3)
+        pyautogui.press("enter")
+
+        return f"Message sent to {contact_name} on WhatsApp."
+
+    except Exception as exc:
+        return f"Failed to send WhatsApp message via desktop app: {exc}"
+
+
+def _send_via_web(contact_name: str, message: str) -> str:
+    """
+    Fallback: open WhatsApp Web, search for the contact by name, and send.
+    """
+    try:
+        print(f"[Messenger] WhatsApp desktop not found — using WhatsApp Web …")
+        webbrowser.open("https://web.whatsapp.com")
+        time.sleep(6)          # wait for WhatsApp Web to fully load
+
+        # Focus the search bar (Ctrl+/ is the WhatsApp Web shortcut)
+        pyautogui.hotkey("ctrl", "/")
+        time.sleep(0.8)
+
+        pyautogui.hotkey("ctrl", "a")
+        pyperclip.copy(contact_name)
+        pyautogui.hotkey("ctrl", "v")
+        time.sleep(2.5)
+
+        pyautogui.press("down")
+        time.sleep(0.4)
+        pyautogui.press("enter")
+        time.sleep(1.5)
+
+        pyperclip.copy(message)
+        pyautogui.hotkey("ctrl", "v")
+        time.sleep(0.3)
+        pyautogui.press("enter")
+
+        return f"Message sent to {contact_name} on WhatsApp."
+
+    except Exception as exc:
+        return f"Failed to send WhatsApp message via web: {exc}"

@@ -376,6 +376,16 @@ def _handle_search_incognito(transcript: str) -> RouteResult | None:
     return RouteResult(response=result, action="search_incognito")
 
 
+def _is_standalone_greeting(transcript: str) -> bool:
+    """Return True only when the complete input is a greeting, not a command."""
+    return bool(re.fullmatch(
+        r"\s*(?:hell+o+|hi+|hey+|howdy|greetings|yo|wassup|"
+        r"what'?s\s*up|good\s*(?:morning|afternoon|evening|night|day))"
+        r"(?:\s+clovis)?[\s!,.?]*",
+        transcript.lower(),
+    ))
+
+
 def _handle_folder_screenshot_sequence(transcript: str) -> RouteResult | None:
     """Run "create folder on Desktop, then save a screenshot there" in order.
 
@@ -443,6 +453,10 @@ def fast_route(transcript: str) -> RouteResult | None:
 
     for intent, pattern in _PATTERNS.items():
         if pattern.search(lower):
+            # A greeting word may occur in a message body, e.g. "send ...
+            # on WhatsApp: hii bhai". It must not override the actual command.
+            if intent == "greet" and not _is_standalone_greeting(lower):
+                continue
             return handle_fast_intent(intent, transcript)
 
     return None  # → LLM PATH

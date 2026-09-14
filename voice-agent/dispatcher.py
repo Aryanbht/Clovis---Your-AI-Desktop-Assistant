@@ -14,6 +14,7 @@ Every dispatch is appended to agent.log with a timestamp.
 from __future__ import annotations
 
 import logging
+
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -90,7 +91,7 @@ _INTENT_MAP: dict[str, Callable[..., str]] = {
 # Public API
 # ══════════════════════════════════════════════════════════════════════════════
 
-def dispatch(result: dict[str, Any]) -> str:
+def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     """
     Execute the tool implied by *result* and return the spoken response string.
 
@@ -122,6 +123,8 @@ def dispatch(result: dict[str, Any]) -> str:
     intent:   str        = str(result.get("intent",   "unknown")).strip().lower()
     params:   dict       = result.get("params",   {}) or {}
     response: str        = str(result.get("response", "I'm not sure what to do.")).strip()
+
+    # send_whatsapp now uses contact_name — no phone number required or checked.
 
     # ── Unknown intent ─────────────────────────────────────────────────────────
     if intent == "unknown":

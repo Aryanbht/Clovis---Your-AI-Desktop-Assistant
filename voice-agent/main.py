@@ -153,7 +153,7 @@ def _process(transcript: str) -> bool:
         _respond("Sorry, I didn't get a response from the language model.")
         return True
 
-    spoken_response = dispatcher.dispatch(llm_result)
+    spoken_response = dispatcher.dispatch(llm_result, original_text=transcript)
     _respond(spoken_response)
     return True
 
