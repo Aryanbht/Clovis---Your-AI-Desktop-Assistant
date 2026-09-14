@@ -60,6 +60,7 @@ _INTENT_MAP: dict[str, Callable[..., str]] = {
     "create_file":   file_ops.create_file,
     "list_files":    file_ops.list_files,
     "delete_file":   file_ops.delete_file,
+    "delete_folder": file_ops.delete_file,
     "move_file":     file_ops.move_file,
 
     # ── Downloader ─────────────────────────────────────────────────────────────

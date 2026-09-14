@@ -22,6 +22,7 @@ IMPORTANT PATH RULE:
 - If the user says "list files in my downloads" with no subfolder → path is "C:/Users/bhatn/Downloads".
 - If the user says a folder name but NOT the drive → still write a full path using the most likely location. The system will search and find it automatically.
 - Do NOT strip the folder name from the path. Include it always.
+- For create_file, the path MUST end with the filename. For example, "add a text file named mera.txt in aryankejalwe on desktop" must use ".../Desktop/aryankejalwe/mera.txt". Never use a folder path as the file path.
 
 Available intents and their required params:
 

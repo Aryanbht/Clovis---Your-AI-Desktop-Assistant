@@ -33,7 +33,7 @@ DOCUMENTS_PATH = _get_shell_folder("Personal")  # "Personal" is the registry key
 
 # Ollama / LLM settings
 OLLAMA_URL   = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "qwen2.5-coder:3b"
+OLLAMA_MODEL = "qwen2.5:3b-instruct"
 
 # Speech-to-text settings
 WHISPER_MODEL_SIZE = "base"

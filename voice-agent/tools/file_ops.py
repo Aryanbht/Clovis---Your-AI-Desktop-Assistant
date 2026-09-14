@@ -297,7 +297,7 @@ def _search_system_for_folder(folder_name: str) -> str | None:
     return best_path
 
 
-def _resolve_any(path: str) -> str:
+def _resolve_any(path: str, *, search_system: bool = False) -> str:
     """
     Full 3-stage path resolution:
       1. _fuzzy_resolve_path   – fuzzy match in the specified parent dir
@@ -329,6 +329,9 @@ def _resolve_any(path: str) -> str:
         print(f"[FileOps] Incomplete match (missing: {missing}), running system search...")
 
     # ── Build search candidates ────────────────────────────────────────────────
+    if not search_system:
+        return resolved
+
     parts = [p for p in Path(_resolve_path(path)).parts
              if len(p) > 3 and p not in ("\\", "/")]
     candidates = []
@@ -382,16 +385,80 @@ def create_folder(path: str) -> str:
         return f"Failed to create folder '{path}': {exc}"
 
 
+# Standard path components that are NOT meaningful folder names chosen by the user.
+_STANDARD_PATH_PARTS = {
+    "users", "onedrive", "documents", "desktop", "downloads",
+    "appdata", "local", "roaming", "program files", "program files (x86)",
+    "windows", "system32", "public", "default", "all users",
+}
+
+
+def _resolve_file_path(path: str) -> str:
+    """
+    Resolve a file path by finding the parent folder intelligently.
+
+    Strategy:
+      1. If the exact path exists, use it.
+      2. Try _resolve_any on the parent folder.
+      3. If the parent still doesn't exist, scan all path components for a
+         non-standard name (e.g. 'aryankejalwe') and use system search to
+         find that folder, then put the file there.
+    """
+    p        = Path(_resolve_path(path))
+    filename = p.name
+    parent   = p.parent
+
+    # Step 1 - exact path works
+    if parent.exists():
+        return str(p)
+
+    # Step 2 - resolve the parent folder with fuzzy matching
+    resolved_parent = _resolve_any(str(parent))
+    if Path(resolved_parent).exists():
+        return str(Path(resolved_parent) / filename)
+
+    # Step 3 - scan path parts for a user-defined folder name
+    meaningful = [
+        part for part in p.parts
+        if part.lower().rstrip("\\/") not in _STANDARD_PATH_PARTS
+        and len(part) > 2
+        and ":" not in part          # skip drive letters
+    ]
+    # Do not search all of OneDrive or every drive while creating a file.
+    # A guessed path must fail safely rather than selecting an unrelated folder.
+    meaningful = []
+    for part in reversed(meaningful):
+        found = _search_system_for_folder(part)
+        if found and Path(found).exists():
+            print(f"[FileOps] File parent resolved via system search: '{part}' -> '{found}'")
+            return str(Path(found) / filename)
+
+    return str(p)   # fallback; will surface a clear error
+
+
 def create_file(path: str, content: str = "") -> str:
     """
     Create a file at *path* with optional *content*.
-    Parent directories are created automatically.
+    The parent folder is resolved with fuzzy + system-wide search so the file
+    lands in the right place even if the LLM guessed the wrong parent path.
 
     Returns a success or failure message string.
     """
     try:
-        target = Path(path)
-        target.parent.mkdir(parents=True, exist_ok=True)
+        resolved = _resolve_file_path(path)
+        target   = Path(resolved)
+        if target.exists() and target.is_dir():
+            return (
+                f"'{target}' is a folder, not a file path. "
+                "Please include a filename such as 'mera.txt'."
+            )
+        if not target.name or target.name in {".", ".."}:
+            return "Please provide a filename, for example 'mera.txt'."
+        if not target.parent.exists():
+            return (
+                f"Folder '{target.parent}' does not exist. "
+                "Create it first or provide an existing folder path."
+            )
         target.write_text(content, encoding="utf-8")
         return f"File created: {target}"
     except PermissionError:
