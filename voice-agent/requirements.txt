@@ -1,0 +1,9 @@
+faster-whisper
+sounddevice
+scipy
+requests
+tqdm
+pyttsx3
+edge-tts
+pyautogui
+ollama
