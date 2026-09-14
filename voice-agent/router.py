@@ -16,6 +16,7 @@ latency near-zero for common commands.
 
 from __future__ import annotations
 
+import ast
 import math
 import os
 import re
@@ -63,8 +64,21 @@ _PATTERNS: dict[str, re.Pattern] = {
 
     # ── Quick math ─────────────────────────────────────────────────────────────
     "quick_math": re.compile(
+        r"(?:"
         r"\b(what\s*is|calculate|compute|solve|evaluate)\b.*"
-        r"(\d[\d\s\+\-\*\/\%\^\(\)\.]*\d|\d)"
+        r"(\d|zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+        r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
+        r"eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
+        r"eighty|ninety)\b"
+        r"|^\s*[\d\(][\d\s\+\-\*\/\%\^\(\)\.]*[\+\-\*\/\%\^][\d\s\+\-\*\/\%\^\(\)\.]*[\d\)]\s*$"
+        r")"
+    ),
+
+    # Private browser window
+    "incognito": re.compile(
+        r"\b(open|start|launch)\s+(?:an?\s+)?incognito"
+        r"(?:\s+(?:window|mode))?(?:\s+(?:on|in))?\s*"
+        r"(?:chrome|google\s+chrome|edge|firefox)?\b"
     ),
 
     # ── App launcher ───────────────────────────────────────────────────────────
@@ -146,7 +160,7 @@ def _eval_math(transcript: str) -> str | None:
     Converts spoken words to operators before eval-ing.
     Returns a formatted result string, or None if evaluation fails.
     """
-    # Normalise spoken operators
+    # Normalise spoken operators.
     text = transcript.lower()
     text = re.sub(r"\bplus\b",                                    "+",   text)
     text = re.sub(r"\bminus\b|\bsubtracted\s*by\b",              "-",   text)
@@ -154,19 +168,87 @@ def _eval_math(transcript: str) -> str | None:
     text = re.sub(r"\bdivided?\s*by\b|\bover\b",                  "/",   text)
     text = re.sub(r"\bto\s*the\s*power\s*(of\s*)?\b|\bexponent\b|\braised?\s*to\b", "**", text)
     text = re.sub(r"\bmod(ulo)?\b",                               "%",   text)
-    text = re.sub(r"\bsquare\s*root\s*(of\s*)?(\d+)",            r"math.sqrt(\2)", text)
+    text = re.sub(r"\bsquare\s*root\s*(of\s*)?(\d+)",            r"sqrt(\2)", text)
+
+    number_words = {
+        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
+        "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+        "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+        "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17,
+        "eighteen": 18, "nineteen": 19, "twenty": 20, "thirty": 30,
+        "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70,
+        "eighty": 80, "ninety": 90,
+    }
+
+    def _number_phrase(match: re.Match) -> str:
+        total = 0
+        current = 0
+        for word in match.group(0).split():
+            if word == "hundred":
+                current = max(current, 1) * 100
+            elif word == "thousand":
+                total += max(current, 1) * 1000
+                current = 0
+            else:
+                current += number_words[word]
+        return str(total + current)
+
+    word_pattern = (
+        r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+        r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
+        r"eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
+        r"eighty|ninety|hundred|thousand)(?:\s+(?:zero|one|two|three|"
+        r"four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|"
+        r"fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|"
+        r"thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|"
+        r"thousand))*\b"
+    )
+    text = re.sub(word_pattern, _number_phrase, text)
 
     # Extract a safe-looking numeric expression
-    match = re.search(r"[\d\s\+\-\*\/\%\^\(\)\.]+", text)
+    # Start at a digit so whitespace after "what is" is never treated as the
+    # expression. This keeps inputs such as "what is 890 + 890" reliable.
+    match = re.search(r"[\d\(][\d\s\+\-\*\/\%\^\(\)\.]*[\d\)]|\d", text)
     if not match:
         return None
 
     expr = match.group().strip().replace("^", "**")
+    # Treat spoken numbers such as "09" as ordinary decimal numbers.
+    expr = re.sub(r"\b0+(\d+)\b", r"\1", expr)
     if not expr or expr in "+-*/":
         return None
 
     try:
-        result = eval(expr, {"__builtins__": {}}, {"math": math})  # noqa: S307
+        tree = ast.parse(expr, mode="eval")
+
+        def _calculate(node: ast.AST) -> int | float:
+            if isinstance(node, ast.Expression):
+                return _calculate(node.body)
+            if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+                return node.value
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+                value = _calculate(node.operand)
+                return value if isinstance(node.op, ast.UAdd) else -value
+            if isinstance(node, ast.BinOp):
+                left = _calculate(node.left)
+                right = _calculate(node.right)
+                if isinstance(node.op, ast.Add):
+                    return left + right
+                if isinstance(node.op, ast.Sub):
+                    return left - right
+                if isinstance(node.op, ast.Mult):
+                    return left * right
+                if isinstance(node.op, ast.Div):
+                    return left / right
+                if isinstance(node.op, ast.Mod):
+                    return left % right
+                if isinstance(node.op, ast.Pow):
+                    if abs(right) > 1000:
+                        raise ValueError("exponent too large")
+                    return left ** right
+            raise ValueError("unsupported expression")
+
+        result = _calculate(tree)
         # Format: drop .0 for whole numbers
         if isinstance(result, float) and result.is_integer():
             result = int(result)
@@ -245,6 +327,55 @@ def _volume_amount(transcript: str) -> int:
     return max(0, min(int(match.group(1)), 100))
 
 
+def _handle_website_in_browser(transcript: str) -> RouteResult | None:
+    """Normalize website-and-browser wording to one URL-opening action."""
+    match = re.search(
+        r"\b(?:open|search|browse|visit|go\s+to)\s+"
+        r"(?P<site>youtube|gmail|google|facebook|instagram|twitter|x)"
+        r"(?:\.com)?\s+(?:on|in|using)\s+"
+        r"(?P<browser>chrome|google\s+chrome|edge|microsoft\s+edge|firefox)\b",
+        transcript.lower(),
+    )
+    if not match:
+        return None
+
+    urls = {
+        "youtube": "https://www.youtube.com",
+        "gmail": "https://mail.google.com",
+        "google": "https://www.google.com",
+        "facebook": "https://www.facebook.com",
+        "instagram": "https://www.instagram.com",
+        "twitter": "https://twitter.com",
+        "x": "https://x.com",
+    }
+    from tools.browser import open_url
+
+    site = match.group("site")
+    browser = match.group("browser")
+    result = open_url(urls[site], browser)
+    return RouteResult(response=result, action="open_url")
+
+
+def _handle_search_incognito(transcript: str) -> RouteResult | None:
+    """Search a query in a private browser window without relying on Ollama."""
+    match = re.search(
+        r"\b(?:search|look\s+up|find)\s+(?P<query>.+?)\s+"
+        r"(?:in|on)\s+(?:an?\s+)?incognito(?:\s+(?:mode|window))?\s+"
+        r"(?:on|in|using)\s+(?P<browser>chrome|google\s+chrome|edge|microsoft\s+edge|firefox)\b",
+        transcript.lower(),
+    )
+    if not match:
+        return None
+
+    from tools.browser import search_web
+    result = search_web(
+        match.group("query").strip(),
+        browser=match.group("browser"),
+        incognito=True,
+    )
+    return RouteResult(response=result, action="search_incognito")
+
+
 def _handle_folder_screenshot_sequence(transcript: str) -> RouteResult | None:
     """Run "create folder on Desktop, then save a screenshot there" in order.
 
@@ -295,6 +426,14 @@ def fast_route(transcript: str) -> RouteResult | None:
     """
     lower = transcript.lower().strip()
 
+    private_search_result = _handle_search_incognito(lower)
+    if private_search_result is not None:
+        return private_search_result
+
+    website_result = _handle_website_in_browser(lower)
+    if website_result is not None:
+        return website_result
+
     # Compound operations must run before the single-action regex table.  For
     # example, otherwise the word "screenshot" would cause the folder request
     # earlier in the sentence to be ignored.
@@ -320,6 +459,7 @@ def handle_fast_intent(intent: str, transcript: str) -> RouteResult:
         "tell_time":   _handle_tell_time,
         "tell_date":   _handle_tell_date,
         "quick_math":  _handle_quick_math,
+        "incognito":   _handle_incognito,
         "open_app":    _handle_open_app,
         "volume_up":   _handle_volume_up,
         "volume_down": _handle_volume_down,
@@ -358,6 +498,18 @@ def _handle_quick_math(transcript: str) -> tuple[str, None]:
     if result is not None:
         return f"That's {result}.", None
     return "Sorry, I couldn't work that out. Could you rephrase it?", None
+
+
+def _handle_incognito(transcript: str) -> tuple[str, str | None]:
+    match = re.search(
+        r"\b(?:on|in)\s+(chrome|google\s+chrome|edge|firefox)\b",
+        transcript.lower(),
+    )
+    browser = match.group(1) if match else "chrome"
+
+    from tools.browser import open_incognito
+    response = open_incognito(browser)
+    return response, "incognito" if response.lower().startswith("opening") else None
 
 
 def _handle_open_app(transcript: str) -> tuple[str, str]:
