@@ -45,6 +45,40 @@ def take_screenshot(save_path: str | None = None) -> str:
         return f"Failed to take screenshot: {exc}"
 
 
+def folder_screenshot(folder_path: str) -> str:
+    """
+    Create a folder (if it doesn't exist) and save a screenshot inside it.
+    Used when the user says something like
+    'create a folder called X on desktop and take a screenshot and save it there'.
+
+    Parameters
+    ----------
+    folder_path : str
+        Full path of the folder to create, e.g.
+        'C:/Users/bhatn/OneDrive/Desktop/screenshots'
+
+    Returns a combined success/failure message.
+    """
+    folder = Path(folder_path)
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        folder_msg = f"Folder '{folder.name}' ready."
+    except Exception as exc:
+        return f"Failed to create folder: {exc}"
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dest = folder / f"screenshot_{timestamp}.png"
+
+    try:
+        time.sleep(0.3)
+        img = pyautogui.screenshot()
+        img.save(str(dest))
+        return f"{folder_msg} Screenshot saved inside it as '{dest.name}'."
+    except Exception as exc:
+        return f"{folder_msg} But screenshot failed: {exc}"
+
+
+
 def lock_screen() -> str:
     """
     Lock the Windows workstation immediately.

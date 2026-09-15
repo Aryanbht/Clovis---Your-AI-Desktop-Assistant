@@ -307,3 +307,298 @@
 [2026-09-15 00:40:36] INTENT=send_whatsapp        | PARAMS={'contact_name': 'shivansh goyal gtb', 'message': 'yeh msg mere ai agent se aaya hai 😘'}
              TOOL_OUT=Message sent to shivansh goyal gtb on WhatsApp.              | SPOKEN=Sending message to Shivansh Goyal on WhatsApp.
 
+[2026-09-15 22:41:12] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+[2026-09-15 22:42:19] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+[2026-09-15 22:43:18] INTENT=send_whatsapp        | PARAMS={'contact_name': 'Atishay Jain', 'message': 'Meet mai dekhne saale'}
+             TOOL_OUT=Message sent to Atishay Jain on WhatsApp.                    | SPOKEN=Sending message to Atishay Jain on WhatsApp.
+
+[2026-09-16 00:18:05] INTENT=create_folder        | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/aryankajalwa'}
+             TOOL_OUT=Folder created: C:\Users\bhatn\OneDrive\Desktop\aryankajalwa | SPOKEN=Created a folder called aryankajalwa on your desktop.
+
+HTTP Request: GET https://huggingface.co/api/agent-harnesses "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/tree/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66?recursive=true&expand=false "HTTP/1.1 200 OK"
+HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-base/resolve/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/config.json "HTTP/1.1 307 Temporary Redirect"
+HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/config.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fconfig.json=&etag=%22867cf1a0fece1394e01d55e287ba2f09a577c046%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/config.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fconfig.json=&etag=%22867cf1a0fece1394e01d55e287ba2f09a577c046%22 "HTTP/1.1 200 OK"
+HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-base/resolve/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/tokenizer.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-base/resolve/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/vocabulary.txt "HTTP/1.1 307 Temporary Redirect"
+HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/tokenizer.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Ftokenizer.json=&etag=%227818adb6de9fa3064d3ff81226fdd675be1f6344%22 "HTTP/1.1 200 OK"
+HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/vocabulary.txt?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fvocabulary.txt=&etag=%22c9074644d9d1205686f16d411564729461324b75%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/tokenizer.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Ftokenizer.json=&etag=%227818adb6de9fa3064d3ff81226fdd675be1f6344%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/vocabulary.txt?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fvocabulary.txt=&etag=%22c9074644d9d1205686f16d411564729461324b75%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/xet-read-token/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66 "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.040 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.960 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.392 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.336 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.368 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.592 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.880 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.912 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.848 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.608 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.432 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.736 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.424 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.400 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.912 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.624 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.624 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.976 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.656 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.944 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.720 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.176 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.440 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.120 of audio
+Processing audio with duration 00:12.600
+VAD filter removed 00:06.040 of audio
+[2026-09-16 00:41:40] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.928 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.688 of audio
+Processing audio with duration 00:09.900
+VAD filter removed 00:03.372 of audio
+[2026-09-16 00:42:24] INTENT=create_folder        | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/rmkjlva'}
+             TOOL_OUT=Folder created: C:\Users\bhatn\OneDrive\Desktop\rmkjlva      | SPOKEN=Created a folder called rmkjlva on your desktop.
+
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.592 of audio
+Processing audio with duration 00:05.400
+VAD filter removed 00:04.216 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.592 of audio
+Processing audio with duration 00:03.000
+VAD filter removed 00:01.208 of audio
+Processing audio with duration 00:04.200
+VAD filter removed 00:02.312 of audio
+Processing audio with duration 00:06.300
+VAD filter removed 00:02.428 of audio
+Processing audio with duration 00:06.300
+VAD filter removed 00:03.196 of audio
+Processing audio with duration 00:03.000
+VAD filter removed 00:03.000 of audio
+Processing audio with duration 00:05.400
+VAD filter removed 00:02.088 of audio
+[2026-09-16 00:50:51] INTENT=open_app             | PARAMS={'app_name': 'chrome'}
+             TOOL_OUT=Opening Google Chrome.                                       | SPOKEN=Opening Chrome.
+
+Processing audio with duration 00:07.800
+VAD filter removed 00:03.960 of audio
+[2026-09-16 00:51:10] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=I can open apps but I cannot close them yet.
+
+Processing audio with duration 00:03.600
+VAD filter removed 00:03.600 of audio
+Processing audio with duration 00:03.300
+VAD filter removed 00:03.300 of audio
+Processing audio with duration 00:09.300
+VAD filter removed 00:03.700 of audio
+[2026-09-16 00:51:50] INTENT=delete_file          | PARAMS={'path': 'C:/Users/bhatn/OneDrive/Desktop/rmkjlva'}
+             TOOL_OUT=Folder deleted: C:\Users\bhatn\OneDrive\Desktop\rmkjlva      | SPOKEN=Folder rmkjlva deleted from your desktop.
+
+Processing audio with duration 00:05.700
+VAD filter removed 00:03.972 of audio
+[2026-09-16 00:52:14] INTENT=screenshot           | PARAMS={}
+             TOOL_OUT=Failed to take screenshot: PyAutoGUI was unable to import pyscreeze. (This is likely because you're running a version of | SPOKEN=Taking a screenshot now.
+
+Processing audio with duration 00:04.500
+VAD filter removed 00:01.588 of audio
+[2026-09-16 00:52:39] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=I can open apps but I cannot close them yet.
+
+Processing audio with duration 00:10.500
+VAD filter removed 00:03.332 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.752 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.624 of audio
+Processing audio with duration 00:11.100
+VAD filter removed 00:01.148 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.208 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.000 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.784 of audio
+Processing audio with duration 00:10.200
+VAD filter removed 00:01.816 of audio
+Processing audio with duration 00:07.200
+VAD filter removed 00:03.616 of audio
+[2026-09-16 00:56:02] INTENT=screenshot           | PARAMS={}
+             TOOL_OUT=Screenshot saved to 'C:\Users\bhatn\OneDrive\Desktop\screenshot_20260916_005601.png'. | SPOKEN=Taking a screenshot now.
+
+Processing audio with duration 00:14.700
+VAD filter removed 00:03.980 of audio
+Processing audio with duration 00:01.800
+VAD filter removed 00:01.800 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.944 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.072 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.656 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.592 of audio
+Processing audio with duration 00:11.100
+VAD filter removed 00:03.548 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:04.200
+VAD filter removed 00:03.048 of audio
+Processing audio with duration 00:09.900
+VAD filter removed 00:02.092 of audio
+Processing audio with duration 00:08.400
+VAD filter removed 00:02.576 of audio

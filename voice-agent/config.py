@@ -1,9 +1,36 @@
 # ── Configuration ──────────────────────────────────────────────────────────────
 
+import os
 import sys
 from pathlib import Path
 
-USERNAME = "Aryan"
+
+def _detect_username() -> str:
+    """
+    Return the display name for this machine's current user.
+
+    Priority:
+      1. CLOVIS_USER environment variable  (explicit override)
+      2. USERNAME  environment variable     (set by Windows for every login session)
+      3. os.getlogin()                      (POSIX / additional fallback)
+      4. Hard-coded fallback string
+    """
+    return (
+        os.environ.get("CLOVIS_USER")
+        or os.environ.get("USERNAME")
+        or _safe_getlogin()
+        or "User"
+    )
+
+
+def _safe_getlogin() -> str:
+    try:
+        return os.getlogin()
+    except Exception:
+        return ""
+
+
+USERNAME = _detect_username()
 
 
 def _get_shell_folder(name: str) -> str:
@@ -39,4 +66,4 @@ OLLAMA_MODEL = "qwen2.5:3b-instruct"
 WHISPER_MODEL_SIZE = "base"
 
 # Wake word (lower-case; detection is case-insensitive)
-WAKE_WORD = "clovis"
+WAKE_WORD = "wake up"

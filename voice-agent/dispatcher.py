@@ -81,9 +81,10 @@ _INTENT_MAP: dict[str, Callable[..., str]] = {
     "open_whatsapp":  lambda **_: system_ops.open_app("whatsapp"),
 
     # ── System (fast-path actions also route here) ─────────────────────────────
-    "screenshot":    system_ops.take_screenshot,
-    "lock_screen":   system_ops.lock_screen,
-    "open_app":      system_ops.open_app,
+    "screenshot":         system_ops.take_screenshot,
+    "folder_screenshot":  system_ops.folder_screenshot,
+    "lock_screen":        system_ops.lock_screen,
+    "open_app":           system_ops.open_app,
 }
 
 

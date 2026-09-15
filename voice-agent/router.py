@@ -107,9 +107,17 @@ _PATTERNS: dict[str, re.Pattern] = {
         r"\b(mute|silence|shut\s*up|stop\s*(the\s*)?sound|unmute)\b"
     ),
 
-    # ── Screenshot ─────────────────────────────────────────────────────────────
+    # -- Screenshot (ONLY standalone, simple commands go through fast path) ------
+    # Complex commands like "create a folder and save screenshot there" must
+    # fall through to the LLM so it can reason about all the steps.
+    # The regex is anchored (^...$) so it only matches if the ENTIRE command
+    # is essentially just "take a screenshot" with nothing else complex.
     "screenshot": re.compile(
-        r"\b(take\s*(a\s*)?screenshot|capture\s*(the\s*)?screen|screenshot)\b"
+        r"^\s*(?:please\s+)?(?:just\s+)?"
+        r"(?:take|capture|grab|snap)\s+(?:a\s+)?(?:quick\s+)?screen\s*shot"
+        r"\s*(?:please|now|for\s+me)?\s*$"
+        r"|^\s*screenshot\s*(?:please|now)?\s*$",
+        re.IGNORECASE,
     ),
 
     # ── Lock screen ────────────────────────────────────────────────────────────
@@ -387,36 +395,61 @@ def _is_standalone_greeting(transcript: str) -> bool:
 
 
 def _handle_folder_screenshot_sequence(transcript: str) -> RouteResult | None:
-    """Run "create folder on Desktop, then save a screenshot there" in order.
-
-    The generic screenshot regex intentionally matches short requests, but it
-    must not discard a preceding folder instruction in a longer sentence.
     """
-    match = re.search(
-        r"\b(?:create|make)\s+(?:a\s+)?folder"
-        r"(?:\s+(?:called|named|by))?\s+(?P<folder>.+?)"
-        r"\s+(?:on|in)\s+(?:the\s+)?desktop\b"
-        r".*?\b(?:take|capture)\s+(?:the\s+|a\s+)?screenshot\b"
-        r".*?\b(?:save|store)\b",
-        transcript.lower(),
-    )
-    if not match:
+    Handle compound commands that ask to:
+      1. Create a folder (on the Desktop)
+      2. Take a screenshot
+      3. Save it in that folder
+
+    Handles any word order and natural phrasings, e.g.:
+      - "create a folder called X on desktop and take a screenshot and save it there"
+      - "create a folder on my desktop named X and take a screenshot and save"
+      - "make a folder named screenshots on the desktop, take a screenshot and save it in that folder"
+    """
+    low = transcript.lower()
+
+    # Must mention: folder creation, screenshot, and saving
+    has_folder    = bool(re.search(r"\b(create|make)\b.{0,20}\bfolder\b", low))
+    has_screenshot = bool(re.search(r"\b(take|capture|save)?\s*(a\s+)?screenshot\b", low))
+    has_save      = bool(re.search(r"\b(save|store|put)\b", low))
+
+    if not (has_folder and has_screenshot):
         return None
 
-    folder_name = match.group("folder").strip(" .")
+    # Extract folder name — try multiple patterns to cover common phrasings
+    folder_name: str | None = None
+
+    name_patterns = [
+        # "folder called/named X on desktop"
+        r"\bfolder\s+(?:called|named|by\s+(?:the\s+name\s+)?(?:of\s+)?)\s*['\"]?(?P<name>[a-zA-Z0-9_ \-]+?)['\"]?\s+(?:on|in|to)\b",
+        # "folder on [my/the] desktop called/named X"
+        r"\bfolder\s+(?:on|in)\s+(?:my|the)\s+desktop\s+(?:called|named|by\s+(?:the\s+name\s+)?(?:of\s+)?)\s*['\"]?(?P<name>[a-zA-Z0-9_ \-]+?)['\"]?\s+(?:and|,|\.|$)",
+        # "folder named/called X" (no location qualifier)
+        r"\bfolder\s+(?:called|named)\s+['\"]?(?P<name>[a-zA-Z0-9_ \-]+?)['\"]?\s+(?:on|in|and|,|to|\.|$)",
+        # "a folder [by the name] X"
+        r"\ba\s+folder\s+(?:by\s+(?:the\s+name\s+(?:of\s+)?)?)?['\"]?(?P<name>[a-zA-Z0-9_ \-]+?)['\"]?\s+(?:on|in|and|,|to|\.|$)",
+    ]
+
+    for pat in name_patterns:
+        m = re.search(pat, low)
+        if m:
+            folder_name = m.group("name").strip(" .")
+            break
+
     if not folder_name:
         return None
 
     from tools import file_ops, system_ops
 
-    folder_path = Path(DESKTOP_PATH) / folder_name
+    folder_path   = Path(DESKTOP_PATH) / folder_name
     folder_result = file_ops.create_folder(str(folder_path))
     if folder_result.lower().startswith(("permission denied", "failed")):
         return RouteResult(response=folder_result, action=None)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp       = datetime.now().strftime("%Y%m%d_%H%M%S")
     screenshot_path = folder_path / f"screenshot_{timestamp}.png"
     screenshot_result = system_ops.take_screenshot(str(screenshot_path))
+
     return RouteResult(
         response=f"{folder_result} {screenshot_result}",
         action="folder_screenshot_sequence",

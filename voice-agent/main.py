@@ -2,7 +2,7 @@
 main.py - Entry point for the Clovis voice assistant.
 
 Run modes
-─────────
+---------
   Normal (wake-word loop):
       python main.py
 
@@ -12,20 +12,21 @@ Run modes
   Pure text input (no mic needed at all):
       python main.py --text
 
-  Hybrid (prompted each turn — choose voice or type):
+  Hybrid (prompted each turn -- choose voice or type):
       python main.py --hybrid
 
 Flow (all modes share the same routing core)
-────
-  get_input()  →  fast_route()  →  speak/print response
-                      │
-                      └─(no match)─►  brain.query()  →  dispatch()  →  speak/print
+----
+  get_input()  ->  fast_route()  ->  speak/print response
+                       |
+                       +-(no match)->  brain.query()  ->  dispatch()  ->  speak/print
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+import time
 
 import brain
 import config
@@ -35,14 +36,14 @@ import router
 import tts
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # Startup
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 def _startup_checks(mode: str) -> None:
     """Print banner, check Ollama availability, and speak the boot message."""
     print("=" * 55)
-    print("  🤖  Clovis voice assistant")
+    print("  Clovis voice assistant")
     print(f"      Model  : {config.OLLAMA_MODEL}")
     print(f"      Whisper: {config.WHISPER_MODEL_SIZE}")
     print(f"      Wake   : '{config.WAKE_WORD}'")
@@ -50,10 +51,10 @@ def _startup_checks(mode: str) -> None:
     print("=" * 55)
 
     if brain.is_ollama_running():
-        print("[Main] ✅  Ollama is running — LLM features available.")
+        print("[Main] Ollama is running -- LLM features available.")
     else:
         print(
-            "[Main] ⚠️   Ollama not detected. "
+            "[Main] Ollama not detected. "
             "LLM features will be unavailable.\n"
             "       Start it with: ollama serve"
         )
@@ -61,19 +62,24 @@ def _startup_checks(mode: str) -> None:
     print()
 
     if mode == "text":
-        print("[Main] 📝  Text mode — type your commands below.\n")
+        print("[Main] Text mode -- type your commands below.\n")
         tts.speak("Clovis online. Text mode active.")
     elif mode == "hybrid":
-        print("[Main] 🔀  Hybrid mode — press Enter to type or say nothing to use voice.\n")
+        print("[Main] Hybrid mode -- press Enter to type or say nothing to use voice.\n")
         tts.speak("Clovis online. Hybrid mode active.")
+        # Pre-load Whisper so it's ready when the user presses Enter
+        listener.preload_model()
     else:
         print(f"[Main] Say '{config.WAKE_WORD.capitalize()}' to activate.\n")
+        # Pre-load Whisper NOW so model-load messages appear before the mic bar
+        listener.preload_model()
         tts.speak("Clovis online. Waiting for wake word.")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+
+# ==============================================================================
 # Input methods
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 def _input_voice() -> str:
     """Record mic and return transcript (may be empty string)."""
@@ -81,7 +87,7 @@ def _input_voice() -> str:
 
 
 def _input_text(prompt: str = "You: ") -> str:
-    """Prompt the user to type a command. Returns stripped lowercase string."""
+    """Prompt the user to type a command. Returns stripped string."""
     try:
         text = input(prompt).strip()
         return text
@@ -92,8 +98,8 @@ def _input_text(prompt: str = "You: ") -> str:
 def _input_hybrid() -> str:
     """
     Ask the user whether to type or speak.
-    Pressing Enter (empty input) → use voice.
-    Typing anything → use that text directly.
+    Pressing Enter (empty input) -> use voice.
+    Typing anything -> use that text directly.
     """
     try:
         typed = input("You (type or press Enter to speak): ").strip()
@@ -103,14 +109,14 @@ def _input_hybrid() -> str:
     if typed:
         return typed.lower()
 
-    # User pressed Enter → fall back to voice
-    print("[Main] 🎙️  Listening…")
+    # User pressed Enter -> fall back to voice
+    print("[Main] Listening...")
     return _input_voice()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # Core command handler  (shared by all modes)
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 def _process(transcript: str) -> bool:
     """
@@ -119,23 +125,23 @@ def _process(transcript: str) -> bool:
     Returns
     -------
     bool
-        ``False`` if a farewell action was detected (signal to exit the loop),
-        ``True`` otherwise.
+        False if a farewell action was detected (signal to exit the loop),
+        True otherwise.
     """
     if not transcript:
-        print("[Main] (empty input — nothing to do)")
+        print("[Main] (empty input -- nothing to do)")
         return True
 
-    print(f"[Main] 📝 You said: '{transcript}'")
+    print(f"[Main] You said: '{transcript}'")
 
-    # ── FAST PATH ──────────────────────────────────────────────────────────────
+    # -- FAST PATH -------------------------------------------------------------
     fast_result = router.fast_route(transcript)
 
     if fast_result is not None:
         response = fast_result.get("response", "")
         action   = fast_result.get("action")
 
-        print(f"[Main] ⚡ Fast path  →  action='{action}'")
+        print(f"[Main] Fast path -> action='{action}'")
 
         _respond(response)
 
@@ -144,8 +150,8 @@ def _process(transcript: str) -> bool:
 
         return True
 
-    # ── LLM PATH ───────────────────────────────────────────────────────────────
-    print("[Main] 🧠 Querying LLM…")
+    # -- LLM PATH --------------------------------------------------------------
+    print("[Main] Querying LLM...")
 
     llm_result = brain.query(transcript)
 
@@ -166,28 +172,70 @@ def _respond(text: str) -> None:
     tts.speak(text)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # Run-mode loops
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 def _wake_word_loop() -> None:
-    """Wait for wake word → voice command → process → repeat."""
+    """
+    Outer loop : sleep until wake word is heard.
+    Inner loop : stay active, processing commands one after another.
+                 Go back to sleep after SLEEP_TIMEOUT seconds of no speech.
+    """
+    SLEEP_TIMEOUT = 5 * 60   # seconds of inactivity before going back to sleep
+
+    cycle = 0
+
     while True:
-        detected = listener.listen_for_wake_word(config.WAKE_WORD)
-        if detected:
-            print(f"[Main] 🎙️  Wake word detected.")
-            tts.speak("Yes?")
-            transcript = _input_voice()
-            keep_going = _process(transcript)
-            if not keep_going:
+        # ── SLEEP PHASE: wait for wake word ───────────────────────────────────
+        print(f"\n[Main] Sleeping. Say '{config.WAKE_WORD}' to activate.\n")
+        while True:
+            detected = listener.listen_for_wake_word(config.WAKE_WORD, cycle=cycle)
+            cycle += 1
+            if detected:
                 break
+
+        # ── ACTIVE PHASE: keep listening until 5 min of inactivity ───────────
+        print("\n[Main] Active! Listening for your command.")
+        print(f"[Main] (I'll go back to sleep after {SLEEP_TIMEOUT // 60} min of silence.)\n")
+        tts.speak("Yes?")
+
+        last_activity = time.time()
+
+        while True:
+            transcript = _input_voice()
+
+            if not transcript:
+                elapsed  = time.time() - last_activity
+                remaining = SLEEP_TIMEOUT - elapsed
+
+                if elapsed >= SLEEP_TIMEOUT:
+                    print("\n[Main] No activity for 5 minutes. Going to sleep...")
+                    tts.speak("Going to sleep. Say " + config.WAKE_WORD + " to wake me up.")
+                    break   # back to sleep phase
+
+                mins = int(remaining // 60)
+                secs = int(remaining % 60)
+                print(f"[Main] Still listening... ({mins}m {secs}s until sleep)")
+                continue
+
+            # Got a real command -- reset the inactivity timer
+            last_activity = time.time()
+            keep_going = _process(transcript)
+
+            if not keep_going:
+                return   # farewell command -- exit completely
+
+            # After responding, immediately listen for the next command
+            print("[Main] Ready for next command (or stay quiet for 5 min to sleep).")
+
 
 
 def _no_wake_word_loop() -> None:
-    """Voice command → process → repeat (no wake word needed)."""
+    """Voice command -> process -> repeat (no wake word needed)."""
     tts.speak("Direct voice mode. Listening now.")
     while True:
-        print("\n[Main] 🎙️  Listening for command…")
+        print("\n[Main] Listening for command...")
         transcript = _input_voice()
         keep_going = _process(transcript)
         if not keep_going:
@@ -195,7 +243,7 @@ def _no_wake_word_loop() -> None:
 
 
 def _text_loop() -> None:
-    """Text command → process → repeat."""
+    """Text command -> process -> repeat."""
     print("[Main] Type your command and press Enter. Type 'bye' to exit.\n")
     while True:
         transcript = _input_text("You: ")
@@ -218,9 +266,9 @@ def _hybrid_loop() -> None:
             break
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # CLI argument parsing
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -251,9 +299,9 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # Main entry point
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 def main() -> None:
     args = _parse_args()
@@ -281,12 +329,12 @@ def main() -> None:
             _wake_word_loop()
 
     except KeyboardInterrupt:
-        print("\n[Main] Shutting down…")
-        tts.speak("Shutting down. Goodbye Aryan.")
+        print("\n[Main] Shutting down...")
+        tts.speak(f"Shutting down. Goodbye {config.USERNAME}.")
         sys.exit(0)
 
     except Exception as exc:
-        print(f"[Main] ❌ Unexpected error: {exc}")
+        print(f"[Main] Unexpected error: {exc}")
         tts.speak("An unexpected error occurred. Restarting.")
         main()
 

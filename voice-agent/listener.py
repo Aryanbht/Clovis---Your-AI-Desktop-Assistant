@@ -12,6 +12,11 @@ import tempfile
 import time
 from typing import Optional
 
+# Suppress noisy HuggingFace / symlink warnings before importing HF libs
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
 import numpy as np
 import sounddevice as sd
 from scipy.io.wavfile import write as wav_write
@@ -29,9 +34,10 @@ DTYPE           = "int16"  # 16-bit PCM; matches scipy WAV output
 CHUNK_DURATION  = 0.3      # seconds per recording chunk
 CHUNK_SAMPLES   = int(SAMPLE_RATE * CHUNK_DURATION)
 
-SILENCE_THRESH  = 500      # RMS below this → silence
-SILENCE_TIMEOUT = 1.5      # seconds of continuous silence → stop recording
-MAX_RECORD_SEC  = 15.0     # hard ceiling to prevent runaway recording
+SILENCE_THRESH      = 200    # RMS below this → silence during command recording
+WAKE_SILENCE_THRESH = 80     # lower bar for wake-word clips (mic gain varies)
+SILENCE_TIMEOUT     = 1.5   # seconds of continuous silence → stop recording
+MAX_RECORD_SEC      = 15.0  # hard ceiling to prevent runaway recording
 
 WAKE_CLIP_SEC   = 2.0      # duration of the short clip for wake-word detection
 
@@ -39,7 +45,7 @@ WAKE_CLIP_SEC   = 2.0      # duration of the short clip for wake-word detection
 # ── Whisper model (loaded once, module-level) ──────────────────────────────────
 
 def _load_model() -> WhisperModel:
-    print(f"[Listener] Loading Whisper '{WHISPER_MODEL_SIZE}' model…")
+    print("[Listener] Loading Whisper model... (first run only, please wait)")
     model = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="int8")
     print("[Listener] Whisper model ready.")
     return model
@@ -54,6 +60,11 @@ def _get_model() -> WhisperModel:
     if _model is None:
         _model = _load_model()
     return _model
+
+
+def preload_model() -> None:
+    """Explicitly load the Whisper model now (call at startup for clean output)."""
+    _get_model()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -97,8 +108,14 @@ def _transcribe_file(wav_path: str) -> str:
 
 def listen() -> str:
     """
-    Record from the default microphone until 1.5 s of silence is detected
-    (or MAX_RECORD_SEC is reached), then transcribe and return the text.
+    Record from the default microphone and return a transcript.
+
+    Two-phase recording:
+      Phase 1 -- Waiting for speech to BEGIN (up to PRE_SPEECH_TIMEOUT seconds).
+                 Silence countdown does NOT run yet; we are just waiting for the
+                 user to start talking.
+      Phase 2 -- Speech has started.  Now count silence; stop after
+                 SILENCE_TIMEOUT seconds of continuous quiet.
 
     Returns
     -------
@@ -106,11 +123,13 @@ def listen() -> str:
         Lowercased, stripped transcript.  Empty string if nothing was heard
         or an error occurred.
     """
-    print("[Listener] Listening… (speak now)")
+    PRE_SPEECH_TIMEOUT = 6.0   # seconds to wait for speech to START
+    print("[Listener] Listening... (speak now)")
 
     chunks: list[np.ndarray] = []
-    silent_duration = 0.0
-    total_duration  = 0.0
+    silent_duration  = 0.0
+    total_duration   = 0.0
+    speech_started   = False   # True once the user has begun speaking
 
     try:
         with sd.InputStream(
@@ -128,29 +147,39 @@ def listen() -> str:
                 chunks.append(chunk)
                 total_duration += CHUNK_DURATION
 
-                if _rms(chunk) < SILENCE_THRESH:
-                    silent_duration += CHUNK_DURATION
-                    if silent_duration >= SILENCE_TIMEOUT:
-                        break
+                chunk_loud = _rms(chunk) >= SILENCE_THRESH
+
+                if not speech_started:
+                    if chunk_loud:
+                        # User has started speaking -- switch to phase 2
+                        speech_started = True
+                        silent_duration = 0.0
+                    else:
+                        # Still waiting for speech; bail if pre-speech window expires
+                        if total_duration >= PRE_SPEECH_TIMEOUT:
+                            print("[Listener] No speech detected.")
+                            return ""
                 else:
-                    silent_duration = 0.0  # reset on speech detection
+                    # Phase 2: track silence after speech has begun
+                    if not chunk_loud:
+                        silent_duration += CHUNK_DURATION
+                        if silent_duration >= SILENCE_TIMEOUT:
+                            break   # enough silence -- done recording
+                    else:
+                        silent_duration = 0.0  # reset on renewed speech
 
     except sd.PortAudioError as exc:
-        print(f"[Listener] ❌ Microphone error: {exc}")
-        print("[Listener]    → Check that a microphone is connected and not in use by another app.")
+        print(f"[Listener] Microphone error: {exc}")
+        print("[Listener]   -> Check that a microphone is connected and not in use by another app.")
         return ""
     except Exception as exc:
-        print(f"[Listener] ❌ Unexpected audio error: {exc}")
+        print(f"[Listener] Unexpected audio error: {exc}")
         return ""
 
-    if not chunks:
+    if not chunks or not speech_started:
         return ""
 
     audio = np.concatenate(chunks)
-
-    # Bail out early if the whole recording was silence
-    if _rms(audio) < SILENCE_THRESH:
-        return ""
 
     # Write to a temp WAV, transcribe, then clean up
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".wav", prefix="va_listen_")
@@ -169,7 +198,7 @@ def listen() -> str:
     return transcript
 
 
-def listen_for_wake_word(wake_word: str) -> bool:
+def listen_for_wake_word(wake_word: str, cycle: int = 0) -> bool:
     """
     Record a short fixed-length clip (WAKE_CLIP_SEC seconds) and return
     ``True`` if *wake_word* appears anywhere in the transcript.
@@ -181,6 +210,9 @@ def listen_for_wake_word(wake_word: str) -> bool:
     ----------
     wake_word : str
         The trigger word/phrase to listen for (case-insensitive).
+    cycle : int
+        Loop counter passed by the caller; used to print a status line
+        every few cycles so the user knows the assistant is listening.
 
     Returns
     -------
@@ -188,6 +220,11 @@ def listen_for_wake_word(wake_word: str) -> bool:
         ``True`` if the wake word was detected, ``False`` otherwise.
     """
     n_samples = int(SAMPLE_RATE * WAKE_CLIP_SEC)
+
+    # Show a live indicator every 3 cycles (~6 seconds) so the user knows
+    # the assistant is actively listening.
+    if cycle % 3 == 0:
+        print(f'[Listener] Listening for wake word "{wake_word}" ... (say it clearly)', end="\r")
 
     try:
         audio = sd.rec(
@@ -200,16 +237,24 @@ def listen_for_wake_word(wake_word: str) -> bool:
         audio = audio.flatten()
 
     except sd.PortAudioError as exc:
-        print(f"[Listener] ❌ Microphone error during wake-word detection: {exc}")
-        print("[Listener]    → Ensure a microphone is available and not blocked.")
+        print(f"\n[Listener] Microphone error during wake-word detection: {exc}")
+        print("[Listener]   -> Ensure a microphone is available and not blocked.")
         time.sleep(1.0)  # back-off before next attempt
         return False
     except Exception as exc:
-        print(f"[Listener] ❌ Unexpected error during wake-word detection: {exc}")
+        print(f"\n[Listener] Unexpected error during wake-word detection: {exc}")
         return False
 
-    # Skip transcription if the clip is too quiet (saves CPU)
-    if _rms(audio) < SILENCE_THRESH:
+    rms = _rms(audio)
+
+    # Show mic level every cycle so the user can see the mic is picking up sound
+    bar_len   = 20
+    filled    = int(min(rms / 800, 1.0) * bar_len)
+    level_bar = "[" + "#" * filled + "-" * (bar_len - filled) + "]"
+    print(f'[Listener] Mic level: {level_bar} RMS={rms:.0f}  | Say "{wake_word}"          ', end="\r")
+
+    # Skip transcription if the clip is too quiet
+    if rms < WAKE_SILENCE_THRESH:
         return False
 
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".wav", prefix="va_wake_")
@@ -223,7 +268,10 @@ def listen_for_wake_word(wake_word: str) -> bool:
         except OSError:
             pass
 
+    if transcript:
+        print(f"\n[Listener] Heard: '{transcript}'                                    ")
+
     detected = wake_word.lower().strip() in transcript
     if detected:
-        print(f"[Listener] 🎙️  Wake word '{wake_word}' detected!")
+        print(f"[Listener] Wake word '{wake_word}' detected!")
     return detected
