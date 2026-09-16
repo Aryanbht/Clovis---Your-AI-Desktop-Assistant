@@ -50,7 +50,7 @@ def _resolve_path(path: str) -> str:
     return path   # no known folder found -- return unchanged
 
 
-def _fuzzy_resolve_path(path: str) -> str:
+def _fuzzy_resolve_path(path: str, *, expect_dir: bool = True) -> str:
     """
     Resolve *path* to an existing filesystem path using fuzzy matching.
 
@@ -65,6 +65,12 @@ def _fuzzy_resolve_path(path: str) -> str:
            Stage 4 - Significant word overlap (>= 50 %)
            Stage 5 - difflib ratio >= 0.55  (typos / abbreviations)
       5. Return the matched path, or the original path if nothing fits.
+
+    Parameters
+    ----------
+    expect_dir : bool
+        If True, only match against directories (not files). Use True for
+        folder operations, False for file operations where the target might be a file.
 
     Examples
     --------
@@ -112,7 +118,7 @@ def _fuzzy_resolve_path(path: str) -> str:
                 pass
 
             # ── Recursive parent resolution ───────────────────────────────────
-            parent = Path(_fuzzy_resolve_path(str(parent)))
+            parent = Path(_fuzzy_resolve_path(str(parent), expect_dir=expect_dir))
             if not parent.exists():
                 return str(p)
 
@@ -125,6 +131,13 @@ def _fuzzy_resolve_path(path: str) -> str:
         candidates = list(parent.iterdir())
     except PermissionError:
         return str(p)
+
+    if not candidates:
+        return str(p)
+
+    # If we're expecting a directory, filter candidates to only directories
+    if expect_dir:
+        candidates = [c for c in candidates if c.is_dir()]
 
     if not candidates:
         return str(p)
@@ -302,10 +315,10 @@ def _resolve_any(path: str, *, search_system: bool = False) -> str:
     Full 3-stage path resolution:
       1. _fuzzy_resolve_path   – fuzzy match in the specified parent dir
       2. Completeness check    – if the match is missing key query words,
-                                 also run system search and take the better result
+                                  also run system search and take the better result
       3. _search_system_for_folder – search entire PC if still not found
     """
-    resolved = _fuzzy_resolve_path(path)
+    resolved = _fuzzy_resolve_path(path, expect_dir=True)
 
     # ── Check if the local fuzzy match is COMPLETE ─────────────────────────────
     # "Dekho zara" matches "Dekho zara Video" but MISSES the word "video".
@@ -372,11 +385,19 @@ def _resolve_any(path: str, *, search_system: bool = False) -> str:
 def create_folder(path: str) -> str:
     """
     Create a folder (and any missing parents) at *path*.
-    Uses fuzzy matching if the parent path name is slightly off.
+    Uses fuzzy matching for PARENT directories only, creates the exact folder name specified.
     Returns a success or failure message string.
     """
     try:
-        target = Path(_resolve_any(path))
+        p = Path(_resolve_path(path))
+        folder_name = p.name
+        parent = p.parent
+
+        # Resolve parent with fuzzy matching (expecting a directory)
+        resolved_parent = Path(_resolve_any(str(parent)))
+
+        # Create the exact folder name at the resolved parent location
+        target = resolved_parent / folder_name
         target.mkdir(parents=True, exist_ok=True)
         return f"Folder created: {target}"
     except PermissionError:
@@ -492,8 +513,8 @@ def list_files(path: str) -> str:
         files   = [e for e in entries if e.is_file()]
 
         # Header
-        lines.append(f"📂 Contents of  {target}  ({len(folders)} folder(s), {len(files)} file(s))")
-        lines.append("─" * 52)
+        lines.append(f"[DIR] Contents of  {target}  ({len(folders)} folder(s), {len(files)} file(s))")
+        lines.append("-" * 52)
 
         for folder in folders:
             lines.append(f"  [DIR]  {folder.name}")

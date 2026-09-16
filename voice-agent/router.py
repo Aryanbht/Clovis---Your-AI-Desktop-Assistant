@@ -83,8 +83,10 @@ _PATTERNS: dict[str, re.Pattern] = {
 
     # ── App launcher ───────────────────────────────────────────────────────────
     "open_app": re.compile(
-        r"\b(open|launch|start|run)\s+"
-        r"(chrome|google\s*chrome|firefox|edge|microsoft\s*edge|brave"
+        r"\b(?:could\s+you\s+(?:please\s+)?|please\s+|would\s+you\s+(?:mind\s+)?|can\s+you\s+(?:please\s+)?|just\s+)?"
+        r"(?:open|launch|start|run)\s+"
+        r"(?:the\s+)?"
+        r"(chrome|google\s*chrome|firefox|edge|microsoft\s*edge|brave|chrome\s+browser|firefox\s+browser|edge\s+browser"
         r"|notepad|notepad\+\+"
         r"|vs\s*code|vscode|visual\s*studio\s*code"
         r"|calculator|calc|file\s*explorer|explorer"
@@ -123,6 +125,18 @@ _PATTERNS: dict[str, re.Pattern] = {
     # ── Lock screen ────────────────────────────────────────────────────────────
     "lock_screen": re.compile(
         r"\b(lock\s*(the\s*)?((screen|computer|pc|system))?|lock\s*down)\b"
+    ),
+
+    # ── WhatsApp messaging ───────────────────────────────────────────────────────
+    "send_whatsapp": re.compile(
+        r"\b(send|message|msg|text)\s+"
+        r"(?:"
+        r"(?:a\s+)?(?:message\s+)?(?:to\s+)?[a-zA-Z\s]+?\s+(?:on\s+)?(?:whatsapp|wa)"
+        r"|"
+        r"(?:a\s+)?(?:message\s+)?(?:whatsapp|wa)\s+to\s+[a-zA-Z\s]+?"
+        r")"
+        r"\b",
+        re.IGNORECASE,
     ),
 
     # ── Acknowledgements ───────────────────────────────────────────────────────
@@ -271,7 +285,21 @@ def _extract_app_name(transcript: str) -> str:
         r"\b(open|launch|start|run)\s+(.+?)(\s+for\s+me|\s+please|$)",
         transcript.lower()
     )
-    return match.group(2).strip() if match else transcript.strip()
+    app_name = match.group(2).strip() if match else transcript.strip()
+    
+    # Normalize common app name variations
+    normalizations = {
+        "chrome browser": "chrome",
+        "google chrome browser": "chrome",
+        "firefox browser": "firefox",
+        "edge browser": "edge",
+        "microsoft edge browser": "edge",
+        "vs code": "vscode",
+        "visual studio code": "vscode",
+        "cmd": "command prompt",
+        "terminal": "windows terminal",
+    }
+    return normalizations.get(app_name, app_name)
 
 
 def _launch_app(app_name: str) -> str:
@@ -502,19 +530,20 @@ def handle_fast_intent(intent: str, transcript: str) -> RouteResult:
     Each handler is a private function below that returns (response, action).
     """
     handlers = {
-        "greet":       _handle_greet,
-        "tell_time":   _handle_tell_time,
-        "tell_date":   _handle_tell_date,
-        "quick_math":  _handle_quick_math,
-        "incognito":   _handle_incognito,
-        "open_app":    _handle_open_app,
-        "volume_up":   _handle_volume_up,
-        "volume_down": _handle_volume_down,
-        "mute":        _handle_mute,
-        "screenshot":  _handle_screenshot,
-        "lock_screen": _handle_lock_screen,
-        "acknowledge": _handle_acknowledge,
-        "farewell":    _handle_farewell,
+        "greet":          _handle_greet,
+        "tell_time":      _handle_tell_time,
+        "tell_date":      _handle_tell_date,
+        "quick_math":     _handle_quick_math,
+        "incognito":      _handle_incognito,
+        "open_app":       _handle_open_app,
+        "volume_up":      _handle_volume_up,
+        "volume_down":    _handle_volume_down,
+        "mute":           _handle_mute,
+        "screenshot":     _handle_screenshot,
+        "lock_screen":    _handle_lock_screen,
+        "send_whatsapp":  _handle_send_whatsapp,
+        "acknowledge":    _handle_acknowledge,
+        "farewell":       _handle_farewell,
     }
     handler = handlers.get(intent, _handle_unknown)
     response, action = handler(transcript)
@@ -606,6 +635,44 @@ def _handle_lock_screen(_transcript: str) -> tuple[str, str]:
         os.system("rundll32.exe user32.dll,LockWorkStation")
         return "Locking the screen. See you soon, Aryan.", "lock_screen"
     return "Screen locking is only supported on Windows.", None
+
+
+def _handle_send_whatsapp(transcript: str) -> tuple[str, str | None]:
+    """Extract contact name and message from WhatsApp send command.
+    
+    Handles multiple patterns:
+    - "send message to John on whatsapp hello"
+    - "message John on whatsapp hello"
+    - "send whatsapp to John saying hello"
+    - "can you send a whatsapp to John saying hello"
+    - "send a message to John on whatsapp hello"
+    """
+    # Patterns in priority order
+    patterns = [
+        # Pattern 1: "send whatsapp to NAME saying MESSAGE" (handles "a whatsapp to")
+        r"\b(send|message|msg|text)\s+(?:a\s+)?(?:message\s+)?(?:whatsapp|wa)\s+to\s+([a-zA-Z\s]+?)\s+(?:saying|with\s+message\s+)\s+(.+)",
+        # Pattern 2: "send whatsapp to NAME MESSAGE" (no saying keyword)
+        r"\b(send|message|msg|text)\s+(?:a\s+)?(?:message\s+)?(?:whatsapp|wa)\s+to\s+([a-zA-Z\s]+?)\s+(.+)",
+        # Pattern 3: "send message to NAME on whatsapp MESSAGE"
+        r"\b(send|message|msg|text)\s+(?:a\s+)?(?:message\s+)?(?:to\s+)?([a-zA-Z\s]+?)\s+(?:on\s+)?(?:whatsapp|wa)\s+(.+)",
+    ]
+    
+    contact_name = None
+    message = None
+    
+    for pattern in patterns:
+        match = re.search(pattern, transcript, re.IGNORECASE)
+        if match:
+            contact_name = match.group(2).strip().title()
+            message = match.group(3).strip()
+            break
+    
+    if not contact_name or not message:
+        return "I couldn't understand the WhatsApp message. Try: 'message John on whatsapp hello'", None
+
+    from tools.messenger import send_whatsapp
+    result = send_whatsapp(contact_name, message)
+    return result, "send_whatsapp"
 
 
 def _handle_acknowledge(_transcript: str) -> tuple[str, None]:

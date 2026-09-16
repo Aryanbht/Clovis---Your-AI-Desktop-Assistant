@@ -22,9 +22,9 @@ from typing import Any, Callable
 from tools import browser, downloader, file_ops, gmail, messenger, system_ops
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # Logger setup
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 _LOG_PATH = Path(__file__).parent / "agent.log"
 
@@ -48,9 +48,9 @@ def _log_event(intent: str, params: dict, tool_output: str, response: str) -> No
     )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Intent → tool function registry
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# Intent -> tool function registry
+# ═══════════════════════════════════════════════════════════════════════════════
 
 # Each value is a callable that accepts **params from the brain result.
 # Using lambdas keeps the mapping readable without wrapper functions.
@@ -88,9 +88,9 @@ _INTENT_MAP: dict[str, Callable[..., str]] = {
 }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 # Public API
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     """
@@ -137,22 +137,22 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
 
     if tool_fn is None:
         msg = f"No tool registered for intent '{intent}'."
-        print(f"[Dispatcher] ⚠️  {msg}")
+        print(f"[Dispatcher] [WARN] {msg}")
         _log_event(intent, params, tool_output=msg, response=response)
         return response   # still speak the LLM's response; don't crash
 
     # ── Execute the tool ───────────────────────────────────────────────────────
-    print(f"[Dispatcher] → {intent}({_fmt_params(params)})")
+    print(f"[Dispatcher] -> {intent}({_fmt_params(params)})")
 
     try:
         tool_output: str = tool_fn(**params) or "(no output)"
     except TypeError as exc:
         # Mismatched kwargs — likely a brain hallucination
         tool_output = f"Parameter error for '{intent}': {exc}"
-        print(f"[Dispatcher] ❌ {tool_output}")
+        print(f"[Dispatcher] [ERROR] {tool_output}")
     except Exception as exc:
         tool_output = f"Error executing '{intent}': {exc}"
-        print(f"[Dispatcher] ❌ {tool_output}")
+        print(f"[Dispatcher] [ERROR] {tool_output}")
 
     _first_line = tool_output.split("\n")[0][:120]
     print(f"[Dispatcher]   tool_output: {_first_line}")
@@ -170,7 +170,7 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     return response
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # Internal helpers
 # ══════════════════════════════════════════════════════════════════════════════
 

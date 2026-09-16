@@ -59,15 +59,15 @@ def _load_system_prompt() -> str:
         if text:
             return text
     except FileNotFoundError:
-        print(f"[Brain] ⚠️  System prompt not found at '{_SYSTEM_PROMPT_PATH}'. Using fallback.")
+        print(f"[Brain] [WARN]  System prompt not found at '{_SYSTEM_PROMPT_PATH}'. Using fallback.")
     except OSError as exc:
-        print(f"[Brain] ⚠️  Could not read system prompt: {exc}. Using fallback.")
+        print(f"[Brain] [WARN]  Could not read system prompt: {exc}. Using fallback.")
 
     return (
         "You are Clovis, a helpful voice assistant. "
         "Always reply with a JSON object containing: "
         "intent (string), params (object), response (string). "
-        "Be concise — responses are spoken aloud."
+        "Be concise \u2014 responses are spoken aloud."
     )
 
 
@@ -81,7 +81,7 @@ def _extract_json(raw: str) -> LLMResult:
     Find and parse the first valid JSON object in *raw*.
 
     Uses a balanced-brace scan instead of a non-greedy regex so nested
-    objects (e.g. ``{"params": {"path": "…"}}``) are captured correctly.
+    objects (e.g. ``{"params": {"path": "..."}}``) are captured correctly.
     Returns ``_FALLBACK`` on any failure.
     """
     # Strip markdown fences the model might add
@@ -90,9 +90,13 @@ def _extract_json(raw: str) -> LLMResult:
     # Find the first '{' and scan forward matching braces
     start = cleaned.find("{")
     if start == -1:
-        print("[Brain] ⚠️  No JSON object found in LLM response.")
-        print(f"[Brain]    Raw: {raw[:300]!r}")
-        return dict(_FALLBACK)
+        # No JSON found - treat entire response as conversational text
+        print("[Brain] No JSON object found - treating as conversational response.")
+        return {
+            "intent": "unknown",
+            "params": {},
+            "response": raw.strip()
+        }
 
     depth   = 0
     in_str  = False
@@ -120,7 +124,7 @@ def _extract_json(raw: str) -> LLMResult:
                 break
 
     if end == -1:
-        print("[Brain] ⚠️  Unbalanced braces in LLM response.")
+        print("[Brain] Unbalanced braces in LLM response.")
         print(f"[Brain]    Raw: {raw[:300]!r}")
         return dict(_FALLBACK)
 
@@ -129,13 +133,13 @@ def _extract_json(raw: str) -> LLMResult:
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError as exc:
-        print(f"[Brain] ⚠️  JSON decode error: {exc}")
+        print(f"[Brain] JSON decode error: {exc}")
         print(f"[Brain]    Attempted: {json_str[:300]!r}")
         return dict(_FALLBACK)
 
     # Normalise keys — handle both schemas the LLM might return:
-    #   Expected:  {"intent":…, "params":…, "response":…}
-    #   Fallback:  {"tool":…,   "action":…, "args":…}      (old prompt format)
+    #   Expected:  {"intent":..., "params":..., "response":...}
+    #   Fallback:  {"tool":...,   "action":..., "args":...}      (old prompt format)
     intent   = (
         data.get("intent")
         or data.get("tool")
@@ -159,7 +163,6 @@ def _extract_json(raw: str) -> LLMResult:
         "response": str(response).strip(),
     }
     return result
-
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -203,25 +206,48 @@ def query(transcript: str) -> LLMResult:
     -------
     LLMResult
         A dict with keys ``intent`` (str), ``params`` (dict),
-        and ``response`` (str).  Never raises — returns ``_FALLBACK`` on
+        and ``response`` (str).  Never raises \u2014 returns ``_FALLBACK`` on
         any error.
     """
     system_prompt = _load_system_prompt()
     full_prompt   = _build_prompt(system_prompt, transcript)
+    return _query_with_prompt(full_prompt)
 
+
+def query_with_context(full_prompt: str) -> LLMResult:
+    """
+    Send a pre-built prompt (with conversation history) to Ollama.
+
+    Parameters
+    ----------
+    full_prompt : str
+        Complete prompt including system prompt, conversation history, and user message.
+
+    Returns
+    -------
+    LLMResult
+        A dict with keys ``intent`` (str), ``params`` (dict),
+        and ``response`` (str).  Never raises \u2014 returns ``_FALLBACK`` on
+        any error.
+    """
+    return _query_with_prompt(full_prompt)
+
+
+def _query_with_prompt(full_prompt: str) -> LLMResult:
+    """Internal: send a complete prompt to Ollama and parse the result."""
     payload = {
         "model":  OLLAMA_MODEL,
         "prompt": full_prompt,
         "stream": False,
     }
 
-    print(f"[Brain] Querying Ollama ({OLLAMA_MODEL}) …")
+    print(f"[Brain] Querying Ollama ({OLLAMA_MODEL}) ...")
 
     try:
         resp = requests.post(OLLAMA_URL, json=payload, timeout=_OLLAMA_TIMEOUT)
         resp.raise_for_status()
     except requests.exceptions.ConnectionError:
-        print("[Brain] ❌ Could not connect to Ollama. Is it running?  (ollama serve)")
+        print("[Brain] [ERROR] Could not connect to Ollama. Is it running?  (ollama serve)")
         fallback = dict(_FALLBACK)
         fallback["response"] = (
             "I can't reach my language model right now. "
@@ -229,7 +255,7 @@ def query(transcript: str) -> LLMResult:
         )
         return fallback
     except requests.exceptions.Timeout:
-        print(f"[Brain] ❌ Ollama request timed out after {_OLLAMA_TIMEOUT} s.")
+        print(f"[Brain] [ERROR] Ollama request timed out after {_OLLAMA_TIMEOUT} s.")
         fallback = dict(_FALLBACK)
         fallback["response"] = "The language model took too long to respond. Please try again."
         return fallback
@@ -237,7 +263,7 @@ def query(transcript: str) -> LLMResult:
         status = exc.response.status_code if exc.response is not None else "?"
         if status == 404:
             print(
-                f"[Brain] ❌ Ollama 404 — model '{OLLAMA_MODEL}' not found.\n"
+                f"[Brain] [ERROR] Ollama 404 — model '{OLLAMA_MODEL}' not found.\n"
                 f"         Run this to download it:  ollama pull {OLLAMA_MODEL}"
             )
             fallback = dict(_FALLBACK)
@@ -246,22 +272,22 @@ def query(transcript: str) -> LLMResult:
                 f"Open a terminal and run: ollama pull {OLLAMA_MODEL}"
             )
             return fallback
-        print(f"[Brain] ❌ Ollama HTTP error {status}: {exc}")
+        print(f"[Brain] [ERROR] Ollama HTTP error {status}: {exc}")
         return dict(_FALLBACK)
     except Exception as exc:
-        print(f"[Brain] ❌ Unexpected error during LLM request: {exc}")
+        print(f"[Brain] [ERROR] Unexpected error during LLM request: {exc}")
         return dict(_FALLBACK)
 
     try:
         body = resp.json()
     except json.JSONDecodeError:
-        print("[Brain] ❌ Ollama returned non-JSON HTTP body.")
+        print("[Brain] [ERROR] Ollama returned non-JSON HTTP body.")
         return dict(_FALLBACK)
 
     raw_output: str = body.get("response", "")
 
     if not raw_output.strip():
-        print("[Brain] ⚠️  Ollama returned an empty response field.")
+        print("[Brain] [WARN]  Ollama returned an empty response field.")
         return dict(_FALLBACK)
 
     result = _extract_json(raw_output)

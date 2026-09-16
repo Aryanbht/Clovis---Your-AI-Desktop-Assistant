@@ -458,7 +458,7 @@ def find_and_launch(query: str) -> str:
         return f"I couldn't find any app matching '{query}' on this system."
 
     app_id = _APP_INDEX[match_name]
-    print(f"[AppFinder] '{query}' → '{match_name}'")
+    print(f"[AppFinder] '{query}' -> '{match_name}'")
     print(f"[AppFinder]            AppID: {app_id[:80]}")
     return _launch(match_name, app_id)
 
