@@ -22,7 +22,10 @@ ollama>=0.1.7
 
 # Volume control (Windows — uses COM / pycaw)
 pycaw>=20230407
-pywin32>=306         # required by pycaw on Windows
+pywin32>=306
+winotify
+APScheduler
+dateparser         # required by pycaw on Windows
 
 # Progress bars (used by downloader)
 tqdm>=4.66.0

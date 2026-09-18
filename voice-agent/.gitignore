@@ -36,3 +36,9 @@ env/
 ARCHITECTURE.md
 CLOVIS_DOCS.md
 CHANGES.md
+
+# Runtime state / Data
+reminders.json
+clovis.lock
+app_cache.json
+agent.log

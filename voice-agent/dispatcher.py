@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from tools import browser, downloader, file_ops, gmail, messenger, system_ops
+from tools import browser, downloader, file_ops, gmail, messenger, system_ops, reminder
 import ui
 
 
@@ -89,6 +89,13 @@ _INTENT_MAP: dict[str, Callable[..., str]] = {
     "open_app":           system_ops.open_app,
     "tell_time":          lambda **_: system_ops.tell_time(),
     "tell_date":          lambda **_: system_ops.tell_date(),
+
+    # ── Reminders ──────────────────────────────────────────────────────────────
+    "set_reminder":      reminder.set_reminder,
+    "cancel_reminder":   reminder.cancel_reminder,
+    "list_reminders":    lambda **_: reminder.list_reminders(),
+    "whats_my_schedule": lambda **_: reminder.get_todays_schedule(),
+    "snooze_reminder":   reminder.snooze_reminder,
 }
 
 
@@ -175,7 +182,11 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     # ── For data intents, the tool output IS the answer ────────────────────────
     # The LLM generates a vague summary before the tool runs, so it can't know
     # the actual content. For listing operations, print and return the real data.
-    _DATA_INTENTS = {"list_files", "tell_time", "tell_date"}
+    _DATA_INTENTS = {
+        "list_files", "tell_time", "tell_date", 
+        "set_reminder", "cancel_reminder", "list_reminders", 
+        "whats_my_schedule", "snooze_reminder"
+    }
     if intent in _DATA_INTENTS:
         _log_event(intent, params, tool_output=tool_output_display, response=spoken)
         return spoken          # chat.py / main.py prints this — no extra print here

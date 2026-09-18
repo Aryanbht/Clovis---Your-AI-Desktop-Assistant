@@ -1293,3 +1293,69 @@ Processing audio with duration 00:04.200
 VAD filter removed 00:01.672 of audio
 Processing audio with duration 00:05.100
 VAD filter removed 00:01.516 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:06.300
+VAD filter removed 00:02.588 of audio
+[2026-09-18 20:49:58] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=I'll set a reminder for you! Unfortunately, I can't set timers directly, but I can suggest using Windows' built-in timer
+
+Processing audio with duration 00:03.300
+VAD filter removed 00:02.084 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:05.100
+VAD filter removed 00:01.612 of audio
+Reminder set. I will remind you to take medicine today at 9:01 PM.
+[2026-09-18 21:00:09] INTENT=set_reminder         | PARAMS={'message': 'take medicine', 'time': 'in 1 minute', 'repeat': None}
+             TOOL_OUT=Reminder set. I will remind you to take medicine today at 9:01 PM. | SPOKEN=Reminder set. I will remind you to take medicine today at 9:01 PM.
+
+Processing audio with duration 00:05.100
+VAD filter removed 00:03.116 of audio
+Processing audio with duration 00:03.300
+VAD filter removed 00:02.212 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:08.100
+VAD filter removed 00:04.036 of audio
+Reminder set. I will remind you to take medicine today at 9:32 PM.
+[2026-09-18 21:32:29] INTENT=set_reminder         | PARAMS={'message': 'take medicine', 'time': 'after 30 seconds', 'repeat': None}
+             TOOL_OUT=Reminder set. I will remind you to take medicine today at 9:32 PM. | SPOKEN=Reminder set. I will remind you to take medicine today at 9:32 PM.
+
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:06.000
+VAD filter removed 00:02.160 of audio
+Reminder set. I will remind you to take medicine today at 9:35 PM.
+[2026-09-18 21:34:10] INTENT=set_reminder         | PARAMS={'message': 'take medicine', 'time': 'in 1 minute', 'repeat': None}
+             TOOL_OUT=Reminder set. I will remind you to take medicine today at 9:35 PM. | SPOKEN=Reminder set. I will remind you to take medicine today at 9:35 PM.
+
+Processing audio with duration 00:03.600
+VAD filter removed 00:02.480 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:05.400
+VAD filter removed 00:01.528 of audio
+Reminder set. I will remind you to take medicine today at 10:10 PM.
+[2026-09-18 22:09:35] INTENT=set_reminder         | PARAMS={'message': 'take medicine', 'time': 'in one minute', 'repeat': None}
+             TOOL_OUT=Reminder set. I will remind you to take medicine today at 10:10 PM. | SPOKEN=Reminder set. I will remind you to take medicine today at 10:10 PM.
+
+Processing audio with duration 00:02.700
+VAD filter removed 00:01.484 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:05.700
+VAD filter removed 00:02.308 of audio
+Processing audio with duration 00:05.400
+VAD filter removed 00:02.232 of audio
+Processing audio with duration 00:06.900
+VAD filter removed 00:02.356 of audio
+Processing audio with duration 00:06.900
+VAD filter removed 00:01.364 of audio
+Message sent to Vishu on WhatsApp.
+[2026-09-18 22:14:33] INTENT=send_whatsapp        | PARAMS={'contact_name': 'Vishu', 'message': 'hi bro, how are you doing?'}
+             TOOL_OUT=Message sent to Vishu on WhatsApp.                           | SPOKEN=Message sent to Vishu on WhatsApp.
+
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:07.500
+VAD filter removed 00:03.180 of audio
+Reminder set. I will remind you to take medicine today at 10:15 PM.
+[2026-09-18 22:15:39] INTENT=set_reminder         | PARAMS={'message': 'take medicine', 'time': 'in 15 seconds', 'repeat': None}
+             TOOL_OUT=Reminder set. I will remind you to take medicine today at 10:15 PM. | SPOKEN=Reminder set. I will remind you to take medicine today at 10:15 PM.
+
+Processing audio with duration 00:02.700
+VAD filter removed 00:01.580 of audio

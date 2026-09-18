@@ -66,6 +66,10 @@ _PATTERNS: dict[str, re.Pattern] = {
         r"\b(clear\s+memory|forget\s+that|start\s+over)\b"
     ),
 
+    # ── Reminders (Fast Path) ──────────────────────────────────────────────────
+    "whats_my_schedule": re.compile(r"\bwhat('s|\s+is)\s+my\s+schedule\b"),
+    "list_reminders": re.compile(r"\b(show\s+(my\s+)?reminders|list\s+reminders|any\s+reminders)\b"),
+
     # ── Quick math ─────────────────────────────────────────────────────────────
     "quick_math": re.compile(
         r"(?:"
@@ -559,6 +563,8 @@ def handle_fast_intent(intent: str, transcript: str) -> RouteResult:
         "farewell":       _handle_farewell,
         "clear_memory":   _handle_clear_memory,
         "refresh_apps":   _handle_refresh_apps,
+        "whats_my_schedule": _handle_whats_my_schedule,
+        "list_reminders": _handle_list_reminders,
     }
     handler = handlers.get(intent, _handle_unknown)
     response, action = handler(transcript)
@@ -708,6 +714,18 @@ def _handle_clear_memory(_transcript: str) -> tuple[str, str]:
 def _handle_refresh_apps(_transcript: str) -> tuple[str, str]:
     from tools.app_finder import refresh_app_index
     return refresh_app_index(), "refresh_apps"
+
+
+def _handle_whats_my_schedule(_transcript: str) -> tuple[str, str]:
+    from tools.reminder import get_todays_schedule
+    result = get_todays_schedule()
+    return result["speak"], "whats_my_schedule"
+
+
+def _handle_list_reminders(_transcript: str) -> tuple[str, str]:
+    from tools.reminder import list_reminders
+    result = list_reminders()
+    return result["speak"], "list_reminders"
 
 
 def _handle_farewell(_transcript: str) -> tuple[str, str]:

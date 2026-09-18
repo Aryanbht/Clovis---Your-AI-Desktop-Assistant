@@ -25,7 +25,9 @@ Flow (all modes share the same routing core)
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+from pathlib import Path
 import time
 
 import brain
@@ -320,6 +322,10 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
+    
+    lock_file = Path(config.BASE_DIR) / "clovis.lock"
+    with open(lock_file, "w") as f:
+        f.write(str(os.getpid()))
 
     # Show menu if no arguments were provided at all
     if not any([args.text_mode, args.hybrid_mode, args.no_wake_word]) and len(sys.argv) == 1:
@@ -366,11 +372,15 @@ def main() -> None:
         ui.console.print("\n[dim yellow]Shutting down...[/dim yellow]")
         tts.speak(f"Shutting down. Goodbye {config.USERNAME}.")
         ui.show_farewell()
+        if lock_file.exists():
+            lock_file.unlink()
         sys.exit(0)
 
     except Exception as exc:
         ui.show_error(f"Unexpected error: {exc}")
         tts.speak("An unexpected error occurred. Restarting.")
+        if lock_file.exists():
+            lock_file.unlink()
         main()
 
 
