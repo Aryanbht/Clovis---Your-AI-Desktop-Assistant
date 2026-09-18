@@ -118,6 +118,8 @@ def _input_hybrid() -> str:
 # Core command handler  (shared by all modes)
 # ==============================================================================
 
+_last_command_time = time.time()
+
 def _process(transcript: str) -> bool:
     """
     Route *transcript* through fast_route / LLM, execute tool, speak response.
@@ -128,6 +130,14 @@ def _process(transcript: str) -> bool:
         False if a farewell action was detected (signal to exit the loop),
         True otherwise.
     """
+    global _last_command_time
+    
+    current_time = time.time()
+    if current_time - _last_command_time > 300:  # 5 minutes
+        print("[Main] 5 minutes of inactivity. Clearing session memory.")
+        brain.clear_memory()
+    _last_command_time = current_time
+
     if not transcript:
         print("[Main] (empty input -- nothing to do)")
         return True

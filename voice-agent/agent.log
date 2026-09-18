@@ -1214,3 +1214,26 @@ Opening https://www.youtube.com/results?search_query=aridit+sing+songs in chrome
 
 Processing audio with duration 00:06.900
 VAD filter removed 00:05.780 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:03.900
+VAD filter removed 00:02.172 of audio
+[2026-09-18 23:22:58] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=That sounds rough. Want to take a break or need help untangling something? I've got your back — whether it's organizing 
+
+Processing audio with duration 00:04.500
+VAD filter removed 00:02.612 of audio
+Processing audio with duration 00:04.800
+VAD filter removed 00:02.752 of audio
+Processing audio with duration 00:02.700
+VAD filter removed 00:01.484 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.700
+VAD filter removed 00:01.228 of audio
+[2026-09-18 23:27:55] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=Not much, just here to help! How's your day shaping up? 😊
+
+Processing audio with duration 00:06.900
+VAD filter removed 00:02.900 of audio
+[2026-09-18 23:28:36] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=Could you clarify if you want to open Spotify, search for it on YouTube, or something else?
+

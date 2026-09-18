@@ -44,6 +44,15 @@ _FALLBACK: LLMResult = {
     "response": "Sorry, I didn't get that.",
 }
 
+# ── State ──────────────────────────────────────────────────────────────────────
+
+conversation_history: list[dict[str, str]] = []
+
+def clear_memory() -> None:
+    """Clear the short-term conversation history."""
+    global conversation_history
+    conversation_history.clear()
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Internal helpers
@@ -79,8 +88,18 @@ def _load_system_prompt() -> str:
 
 
 def _build_prompt(system_prompt: str, transcript: str) -> str:
-    """Combine system prompt and user transcript into a single prompt string."""
-    return f"{system_prompt}\n\nUser: {transcript}"
+    """Combine system prompt, history context, and user transcript into a single prompt string."""
+    # If there is no history, just return the system prompt and the current user command
+    if not conversation_history:
+        return f"{system_prompt}\n\nUser: {transcript}"
+        
+    # Build the context string from the last 3 turns
+    context_str = "Recent context:\n"
+    for turn in conversation_history:
+        context_str += f"User: {turn['user']}\nAssistant: {turn['assistant']}\n\n"
+        
+    # Inject this context between the system prompt and the current user command
+    return f"{system_prompt}\n\n{context_str}User: {transcript}"
 
 
 def _extract_json(raw: str) -> LLMResult:
@@ -218,7 +237,15 @@ def query(transcript: str) -> LLMResult:
     """
     system_prompt = _load_system_prompt()
     full_prompt   = _build_prompt(system_prompt, transcript)
-    return _query_with_prompt(full_prompt)
+    result = _query_with_prompt(full_prompt)
+    
+    # After getting a response, append the interaction to conversation_history
+    conversation_history.append({"user": transcript, "assistant": result["response"]})
+    # Keep only the last 3 turns (pop the oldest when length exceeds 3)
+    if len(conversation_history) > 3:
+        conversation_history.pop(0)
+        
+    return result
 
 
 def query_with_context(full_prompt: str) -> LLMResult:

@@ -62,6 +62,10 @@ _PATTERNS: dict[str, re.Pattern] = {
         r"|what'?s?\s*(today|the\s*date)|tell\s*me\s*the\s*date)\b"
     ),
 
+    "clear_memory": re.compile(
+        r"\b(clear\s+memory|forget\s+that|start\s+over)\b"
+    ),
+
     # ── Quick math ─────────────────────────────────────────────────────────────
     "quick_math": re.compile(
         r"(?:"
@@ -96,6 +100,10 @@ _PATTERNS: dict[str, re.Pattern] = {
         r"|paint|word|excel|powerpoint|outlook|teams"
         r"|cmd|terminal|powershell|command\s*prompt|settings"
         r"|windows\s*terminal)\b"
+    ),
+
+    "refresh_apps": re.compile(
+        r"\b(refresh\s+apps|update\s+app\s+list|rescan\s+apps)\b"
     ),
 
     # ── Volume ─────────────────────────────────────────────────────────────────
@@ -549,6 +557,8 @@ def handle_fast_intent(intent: str, transcript: str) -> RouteResult:
         "send_whatsapp":  _handle_send_whatsapp,
         "acknowledge":    _handle_acknowledge,
         "farewell":       _handle_farewell,
+        "clear_memory":   _handle_clear_memory,
+        "refresh_apps":   _handle_refresh_apps,
     }
     handler = handlers.get(intent, _handle_unknown)
     response, action = handler(transcript)
@@ -687,6 +697,17 @@ def _handle_send_whatsapp(transcript: str) -> tuple[str, str | None]:
 
 def _handle_acknowledge(_transcript: str) -> tuple[str, None]:
     return "Anytime Aryan.", None
+
+
+def _handle_clear_memory(_transcript: str) -> tuple[str, str]:
+    import brain
+    brain.clear_memory()
+    return "Memory cleared. Fresh start.", "clear_memory"
+
+
+def _handle_refresh_apps(_transcript: str) -> tuple[str, str]:
+    from tools.app_finder import refresh_app_index
+    return refresh_app_index(), "refresh_apps"
 
 
 def _handle_farewell(_transcript: str) -> tuple[str, str]:

@@ -27,7 +27,11 @@ import os
 import re
 import subprocess
 import sys
+import threading
+from datetime import datetime
 from pathlib import Path
+
+from config import BASE_DIR
 
 
 # ── Minimal abbreviation table ─────────────────────────────────────────────────
@@ -90,6 +94,31 @@ _STOP_WORDS = {"the", "a", "an", "of", "for", "to", "in", "on", "and", "or", "by
 _APP_INDEX: dict[str, str] = {}
 _INDEX_BUILT = False
 
+CACHE_FILE = BASE_DIR / "app_cache.json"
+
+def load_cache() -> dict | None:
+    if not CACHE_FILE.exists():
+        return None
+    try:
+        data = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        cached_at = datetime.fromisoformat(data["cached_at"])
+        if (datetime.now() - cached_at).total_seconds() > 86400:
+            return None
+        return data["apps"]
+    except Exception as exc:
+        print(f"[AppFinder] Failed to load cache: {exc}")
+        return None
+
+def save_cache(app_dict: dict) -> None:
+    try:
+        data = {
+            "cached_at": datetime.now().isoformat(),
+            "apps": app_dict
+        }
+        CACHE_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception as exc:
+        print(f"[AppFinder] Failed to save cache: {exc}")
+
 
 def _resolve_guid_path(app_id: str) -> str:
     """Replace Windows Known-Folder GUIDs in an AppID with real paths."""
@@ -105,6 +134,15 @@ def _resolve_guid_path(app_id: str) -> str:
 def _build_index() -> None:
     """Query Get-StartApps + Epic Games + Steam + exe-search and populate _APP_INDEX."""
     global _INDEX_BUILT
+
+    cached_apps = load_cache()
+    if cached_apps is not None:
+        _APP_INDEX.clear()
+        _APP_INDEX.update(cached_apps)
+        _INDEX_BUILT = True
+        print(f"[APP INDEX] Loaded from cache ({len(_APP_INDEX)} apps)")
+        return
+
     _APP_INDEX.clear()
 
     if sys.platform != "win32":
@@ -145,7 +183,8 @@ def _build_index() -> None:
     _scan_registry()
 
     _INDEX_BUILT = True
-    print(f"[AppFinder] Indexed {len(_APP_INDEX)} apps from your system.")
+    save_cache(_APP_INDEX)
+    print(f"[APP INDEX] Rebuilt index ({len(_APP_INDEX)} apps)")
 
 
 def _scan_epic_games() -> None:
@@ -468,3 +507,18 @@ def list_all_apps() -> str:
         f"{name:40}  {app_id[:60]}"
         for name, app_id in sorted(_APP_INDEX.items())
     )
+
+
+def refresh_app_index() -> str:
+    """Force a background rescan of all apps and overwrite the cache."""
+    global _INDEX_BUILT
+    _INDEX_BUILT = False
+    
+    if CACHE_FILE.exists():
+        try:
+            CACHE_FILE.unlink()
+        except OSError:
+            pass
+            
+    threading.Thread(target=_build_index, daemon=True).start()
+    return "Rescanning all installed apps. This will take a few seconds."

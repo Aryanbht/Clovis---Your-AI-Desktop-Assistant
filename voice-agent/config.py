@@ -54,6 +54,7 @@ def _get_shell_folder(name: str) -> str:
 
 
 # Filesystem paths — read from Windows registry so relocated folders work correctly
+BASE_DIR       = Path(__file__).parent
 DESKTOP_PATH   = _get_shell_folder("Desktop")
 DOWNLOADS_PATH = _get_shell_folder("{374DE290-123F-4565-9164-39C4925E467B}")  # Downloads GUID
 DOCUMENTS_PATH = _get_shell_folder("Personal")  # "Personal" is the registry key for Documents
