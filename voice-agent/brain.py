@@ -55,7 +55,14 @@ def _load_system_prompt() -> str:
     Falls back to a minimal inline prompt if the file is missing.
     """
     try:
+        from config import DESKTOP_PATH, DOWNLOADS_PATH, DOCUMENTS_PATH
         text = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8").strip()
+        
+        # Dynamically inject the user's real paths so the LLM doesn't hallucinate the hardcoded examples
+        text = text.replace("<DESKTOP_PATH>", DESKTOP_PATH.replace("\\", "/"))
+        text = text.replace("<DOWNLOADS_PATH>", DOWNLOADS_PATH.replace("\\", "/"))
+        text = text.replace("<DOCUMENTS_PATH>", DOCUMENTS_PATH.replace("\\", "/"))
+        
         if text:
             return text
     except FileNotFoundError:

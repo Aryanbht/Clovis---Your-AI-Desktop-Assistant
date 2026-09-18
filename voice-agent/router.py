@@ -54,7 +54,7 @@ _PATTERNS: dict[str, re.Pattern] = {
     "tell_time": re.compile(
         r"\b(what(\s*is|\s*'?s)?\s*the\s*time|current\s*time|tell\s*me\s*the\s*time"
         r"|what\s*time\s*is\s*it|time\s*now|what'?s?\s*time|time\s*is\s*it"
-        r"|what\s*is\s*time|current\s*time\s*please|tell\s*time)\b"
+        r"|what\s*is\s*time|current\s*time\s*please|tell\s*time)"
     ),
     "tell_date": re.compile(
         r"\b(what(\s*is|\s*'?s)?\s*(the\s*)?(date|day)|today'?s?\s*date"
@@ -495,7 +495,8 @@ def fast_route(transcript: str) -> RouteResult | None:
     Returns a :class:`RouteResult` dict if a fast intent is found,
     or ``None`` to signal that the caller should use the LLM path.
     """
-    lower = transcript.lower().strip()
+    import string
+    lower = transcript.lower().strip().strip(string.punctuation)
 
     private_search_result = _handle_search_incognito(lower)
     if private_search_result is not None:

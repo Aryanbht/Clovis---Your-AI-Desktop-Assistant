@@ -85,6 +85,8 @@ _INTENT_MAP: dict[str, Callable[..., str]] = {
     "folder_screenshot":  system_ops.folder_screenshot,
     "lock_screen":        system_ops.lock_screen,
     "open_app":           system_ops.open_app,
+    "tell_time":          lambda **_: system_ops.tell_time(),
+    "tell_date":          lambda **_: system_ops.tell_date(),
 }
 
 
@@ -160,7 +162,7 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     # ── For data intents, the tool output IS the answer ────────────────────────
     # The LLM generates a vague summary before the tool runs, so it can't know
     # the actual content. For listing operations, print and return the real data.
-    _DATA_INTENTS = {"list_files"}
+    _DATA_INTENTS = {"list_files", "tell_time", "tell_date"}
     if intent in _DATA_INTENTS:
         _log_event(intent, params, tool_output=tool_output, response=tool_output)
         return tool_output          # chat.py / main.py prints this — no extra print here

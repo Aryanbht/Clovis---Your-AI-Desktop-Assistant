@@ -412,18 +412,8 @@ def _launch(display_name: str, app_id: str) -> str:
             os.startfile(app_id)
             return f"Opening {display_name.title()}."
 
-        # ── Store AUMID (contains ! separator) ────────────────────────────────
-        if "!" in app_id:
-            subprocess.Popen(["explorer.exe", f"shell:AppsFolder\\{app_id}"],
-                             shell=False)
-            return f"Opening {display_name.title()}."
-
-        # ── Electron / generic ID — PowerShell Start-Process ──────────────────
-        subprocess.Popen(
-            ["powershell", "-NoProfile", "-WindowStyle", "Hidden",
-             "-Command", f"Start-Process '{app_id}'"],
-            shell=False,
-        )
+        # ── Store AUMID / Generic AppID (universal fallback) ──────────────────
+        subprocess.Popen(["explorer.exe", f"shell:AppsFolder\\{app_id}"], shell=False)
         return f"Opening {display_name.title()}."
 
     except Exception as exc:
@@ -442,7 +432,8 @@ def find_and_launch(query: str) -> str:
     """
     _ensure_index()
 
-    q = query.strip().lower()
+    import string
+    q = query.strip().lower().strip(string.punctuation)
     q = _ABBREV.get(q, q)       # apply abbreviation only if it's an exact alias
 
     match_name = _search(q)

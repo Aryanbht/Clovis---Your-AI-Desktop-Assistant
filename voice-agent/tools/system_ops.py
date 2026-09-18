@@ -87,10 +87,22 @@ def lock_screen() -> str:
     if sys.platform != "win32":
         return "Screen locking via rundll32 is only supported on Windows."
 
-    ret = os.system("rundll32.exe user32.dll,LockWorkStation")
-    if ret == 0:
-        return "Locking the screen. See you soon!"
-    return f"Lock screen command returned exit code {ret}."
+    result = os.system("rundll32.exe user32.dll,LockWorkStation")
+    if result == 0:
+        return "Screen locked."
+    return "Failed to lock screen."
+
+
+def tell_time() -> str:
+    """Return the current local time."""
+    t_str = datetime.now().strftime("%#I:%M %p" if sys.platform == "win32" else "%-I:%M %p")
+    return f"It's {t_str} right now."
+
+
+def tell_date() -> str:
+    """Return the current local date."""
+    d_str = datetime.now().strftime("%A, %d %B %Y")
+    return f"Today is {d_str}."
 
 
 def open_app(app_name: str) -> str:
