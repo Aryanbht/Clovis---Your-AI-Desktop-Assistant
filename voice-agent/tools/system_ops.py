@@ -16,7 +16,7 @@ import pyautogui
 from config import DESKTOP_PATH
 
 
-def take_screenshot(save_path: str | None = None) -> str:
+def take_screenshot(save_path: str | None = None) -> dict:
     """
     Capture the full screen and save it as a PNG.
 
@@ -40,12 +40,14 @@ def take_screenshot(save_path: str | None = None) -> str:
         time.sleep(0.3)
         img = pyautogui.screenshot()
         img.save(str(dest))
-        return f"Screenshot saved to '{dest}'."
+        msg = f"Screenshot saved to '{dest}'."
+        return {"display": msg, "speak": "Screenshot saved."}
     except Exception as exc:
-        return f"Failed to take screenshot: {exc}"
+        msg = f"Failed to take screenshot: {exc}"
+        return {"display": msg, "speak": "I couldn't take a screenshot."}
 
 
-def folder_screenshot(folder_path: str) -> str:
+def folder_screenshot(folder_path: str) -> dict:
     """
     Create a folder (if it doesn't exist) and save a screenshot inside it.
     Used when the user says something like
@@ -64,7 +66,8 @@ def folder_screenshot(folder_path: str) -> str:
         folder.mkdir(parents=True, exist_ok=True)
         folder_msg = f"Folder '{folder.name}' ready."
     except Exception as exc:
-        return f"Failed to create folder: {exc}"
+        msg = f"Failed to create folder: {exc}"
+        return {"display": msg, "speak": "I couldn't create the folder."}
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     dest = folder / f"screenshot_{timestamp}.png"
@@ -73,39 +76,45 @@ def folder_screenshot(folder_path: str) -> str:
         time.sleep(0.3)
         img = pyautogui.screenshot()
         img.save(str(dest))
-        return f"{folder_msg} Screenshot saved inside it as '{dest.name}'."
+        msg = f"{folder_msg} Screenshot saved inside it as '{dest.name}'."
+        return {"display": msg, "speak": "Screenshot saved in folder."}
     except Exception as exc:
-        return f"{folder_msg} But screenshot failed: {exc}"
+        msg = f"{folder_msg} But screenshot failed: {exc}"
+        return {"display": msg, "speak": "Folder created, but screenshot failed."}
 
 
 
-def lock_screen() -> str:
+def lock_screen() -> dict:
     """
     Lock the Windows workstation immediately.
     Returns a success or failure message string.
     """
     if sys.platform != "win32":
-        return "Screen locking via rundll32 is only supported on Windows."
+        msg = "Screen locking via rundll32 is only supported on Windows."
+        return {"display": msg, "speak": "I can only lock Windows computers."}
 
     result = os.system("rundll32.exe user32.dll,LockWorkStation")
     if result == 0:
-        return "Screen locked."
-    return "Failed to lock screen."
+        return {"display": "Screen locked.", "speak": "Locking your screen now."}
+    return {"display": "Failed to lock screen.", "speak": "I couldn't lock your screen."}
 
 
-def tell_time() -> str:
+def tell_time() -> dict:
     """Return the current local time."""
     t_str = datetime.now().strftime("%#I:%M %p" if sys.platform == "win32" else "%-I:%M %p")
-    return f"It's {t_str} right now."
+    clean_time = t_str.replace(":", " ")
+    msg = f"It's {t_str} right now."
+    return {"display": msg, "speak": f"It is {clean_time} right now."}
 
 
-def tell_date() -> str:
+def tell_date() -> dict:
     """Return the current local date."""
     d_str = datetime.now().strftime("%A, %d %B %Y")
-    return f"Today is {d_str}."
+    msg = f"Today is {d_str}."
+    return {"display": msg, "speak": msg}
 
 
-def open_app(app_name: str) -> str:
+def open_app(app_name: str) -> dict:
     """
     Launch any installed application by name using fully dynamic fuzzy matching.
 
@@ -113,7 +122,8 @@ def open_app(app_name: str) -> str:
     discover every installed app on this system (Win32, Store, Electron).
     No hardcoded app list — works for any app the user has installed.
 
-    Returns a success or failure message string.
+    Returns a dict with success or failure message.
     """
     from tools.app_finder import find_and_launch
-    return find_and_launch(app_name)
+    res = find_and_launch(app_name)
+    return {"display": res, "speak": res}

@@ -147,16 +147,29 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     print(f"[Dispatcher] -> {intent}({_fmt_params(params)})")
 
     try:
-        tool_output: str = tool_fn(**params) or "(no output)"
+        tool_result = tool_fn(**params)
+
+        if isinstance(tool_result, dict) and "speak" in tool_result:
+            print(tool_result["display"])        # rich output to console
+            _log.info(tool_result["display"])    # log the display version
+            tool_output_display = tool_result["display"]
+            spoken = tool_result["speak"]        # clean version for TTS
+        else:
+            tool_result_str = str(tool_result or "(no output)")
+            tool_output_display = tool_result_str
+            spoken = tool_result_str
+
     except TypeError as exc:
         # Mismatched kwargs — likely a brain hallucination
-        tool_output = f"Parameter error for '{intent}': {exc}"
-        print(f"[Dispatcher] [ERROR] {tool_output}")
+        tool_output_display = f"Parameter error for '{intent}': {exc}"
+        spoken = tool_output_display
+        print(f"[Dispatcher] [ERROR] {tool_output_display}")
     except Exception as exc:
-        tool_output = f"Error executing '{intent}': {exc}"
-        print(f"[Dispatcher] [ERROR] {tool_output}")
+        tool_output_display = f"Error executing '{intent}': {exc}"
+        spoken = tool_output_display
+        print(f"[Dispatcher] [ERROR] {tool_output_display}")
 
-    _first_line = tool_output.split("\n")[0][:120]
+    _first_line = tool_output_display.split("\n")[0][:120]
     print(f"[Dispatcher]   tool_output: {_first_line}")
 
     # ── For data intents, the tool output IS the answer ────────────────────────
@@ -164,11 +177,11 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     # the actual content. For listing operations, print and return the real data.
     _DATA_INTENTS = {"list_files", "tell_time", "tell_date"}
     if intent in _DATA_INTENTS:
-        _log_event(intent, params, tool_output=tool_output, response=tool_output)
-        return tool_output          # chat.py / main.py prints this — no extra print here
+        _log_event(intent, params, tool_output=tool_output_display, response=spoken)
+        return spoken          # chat.py / main.py prints this — no extra print here
 
     # ── Log and return ─────────────────────────────────────────────────────────
-    _log_event(intent, params, tool_output=tool_output, response=response)
+    _log_event(intent, params, tool_output=tool_output_display, response=response)
     return response
 
 

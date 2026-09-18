@@ -51,7 +51,7 @@ def speak(text: str) -> None:
         return
 
     # Sanitise: edge-tts can choke on some unicode / markdown remnants
-    clean = _sanitise(text)
+    clean = clean_for_tts(text)
 
     success = _speak_edge(clean)
     if not success:
@@ -226,21 +226,44 @@ def _speak_pyttsx3(text: str) -> None:
 # Text sanitisation
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _sanitise(text: str) -> str:
+def clean_for_tts(text: str) -> str:
     """
-    Strip markdown artifacts and control characters that confuse TTS engines.
-    Keeps the spoken output natural.
+    Clean text for TTS by removing emojis, markdown, paths, URLs, and formatting tags.
     """
     import re
 
-    # Remove markdown bold/italic markers
-    text = re.sub(r"\*{1,3}|_{1,3}", "", text)
-    # Remove inline code ticks
-    text = re.sub(r"`+", "", text)
-    # Collapse multiple spaces / newlines into a single space
-    text = re.sub(r"[\r\n]+", " ", text)
-    text = re.sub(r" {2,}", " ", text)
-    # Remove leftover bracket pairs (e.g. from [link text])
-    text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+    # 1. Remove all emojis and non-ASCII symbols (except Hindi \u0900-\u097F)
+    # ASCII is \x00-\x7F. We want to keep letters, numbers, punctuation.
+    # Keep ASCII and Hindi range, remove everything else (like emojis).
+    text = re.sub(r'[^\x00-\x7F\u0900-\u097F]+', ' ', text)
 
+    # 2. Remove markdown bold/italic
+    text = re.sub(r"\*{1,2}|_{1,2}", "", text)
+    text = re.sub(r"`+", "", text)
+
+    # 3. Replace dashes used as separators ( - – — ) with a comma and space
+    text = re.sub(r"\s+[-–—]+\s+", ", ", text)
+
+    # 4. Remove patterns like "path:" "result:" "status:" (case-insensitive)
+    text = re.sub(r"\b(path|result|status|file|url|error):\s*", "", text, flags=re.IGNORECASE)
+
+    # 5. Remove all URLs
+    text = re.sub(r"https?://\S+", "", text)
+
+    # 6. Remove all Windows file paths (C:\, D:\, C:/, D:/, etc.)
+    text = re.sub(r"\b[A-Za-z]:[\\/]\S*", "", text)
+
+    # 7. Remove square bracket tags like [FAST PATH], [LLM PATH], [ERROR]
+    text = re.sub(r"\[.*?\]", "", text)
+
+    # 8. Remove parentheses and their content if they contain technical info like paths or True/False
+    # We will remove any (...) that contains a slash, backslash, or boolean
+    text = re.sub(r"\([^)]*?[\\/][^)]*?\)", "", text)
+    text = re.sub(r"\((True|False)\)", "", text, flags=re.IGNORECASE)
+
+    # 9. Collapse multiple spaces and newlines into a single space
+    text = re.sub(r"[\r\n]+", " ", text)
+    text = re.sub(r"\s{2,}", " ", text)
+
+    # 10. Strip leading and trailing whitespace
     return text.strip()

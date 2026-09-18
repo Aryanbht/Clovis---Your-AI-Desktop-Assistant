@@ -44,7 +44,7 @@ def _launch_whatsapp_app() -> None:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def send_whatsapp(contact_name: str, message: str) -> str:
+def send_whatsapp(contact_name: str, message: str) -> dict:
     """
     Send a WhatsApp message to *contact_name*.
 
@@ -62,9 +62,9 @@ def send_whatsapp(contact_name: str, message: str) -> str:
     Returns a success or failure message string.
     """
     if not contact_name or not contact_name.strip():
-        return "Please provide a contact name."
+        return {"display": "Please provide a contact name.", "speak": "You didn't provide a contact name."}
     if not message or not message.strip():
-        return "Please provide a message to send."
+        return {"display": "Please provide a message to send.", "speak": "You didn't provide a message to send."}
 
     contact_name = contact_name.strip()
     message      = message.strip()
@@ -75,21 +75,23 @@ def send_whatsapp(contact_name: str, message: str) -> str:
         return _send_via_web(contact_name, message)
 
 
-def open_telegram() -> str:
+def open_telegram() -> dict:
     """
     Open Telegram Web in the system's default browser.
     Returns a success or failure message string.
     """
     try:
         webbrowser.open("https://web.telegram.org")
-        return "Opening Telegram Web in your browser."
+        msg = "Opening Telegram Web in your browser."
+        return {"display": msg, "speak": "Opening Telegram."}
     except Exception as exc:
-        return f"Failed to open Telegram: {exc}"
+        msg = f"Failed to open Telegram: {exc}"
+        return {"display": msg, "speak": "I couldn't open Telegram."}
 
 
 # ── Private implementations ───────────────────────────────────────────────────
 
-def _send_via_desktop_app(contact_name: str, message: str) -> str:
+def _send_via_desktop_app(contact_name: str, message: str) -> dict:
     """
     Automate the WhatsApp desktop app:
       1. Launch / bring to foreground.
@@ -124,13 +126,15 @@ def _send_via_desktop_app(contact_name: str, message: str) -> str:
         time.sleep(0.3)
         pyautogui.press("enter")
 
-        return f"Message sent to {contact_name} on WhatsApp."
+        msg = f"Message sent to {contact_name} on WhatsApp."
+        return {"display": msg, "speak": f"Message sent to {contact_name}."}
 
     except Exception as exc:
-        return f"Failed to send WhatsApp message via desktop app: {exc}"
+        msg = f"Failed to send WhatsApp message via desktop app: {exc}"
+        return {"display": msg, "speak": "I couldn't send the message."}
 
 
-def _send_via_web(contact_name: str, message: str) -> str:
+def _send_via_web(contact_name: str, message: str) -> dict:
     """
     Fallback: open WhatsApp Web, search for the contact by name, and send.
     """
@@ -158,7 +162,9 @@ def _send_via_web(contact_name: str, message: str) -> str:
         time.sleep(0.3)
         pyautogui.press("enter")
 
-        return f"Message sent to {contact_name} on WhatsApp."
+        msg = f"Message sent to {contact_name} on WhatsApp."
+        return {"display": msg, "speak": f"Message sent to {contact_name}."}
 
     except Exception as exc:
-        return f"Failed to send WhatsApp message via web: {exc}"
+        msg = f"Failed to send WhatsApp message via web: {exc}"
+        return {"display": msg, "speak": "I couldn't send the message."}

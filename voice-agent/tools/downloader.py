@@ -15,7 +15,7 @@ from tqdm import tqdm
 from config import DOWNLOADS_PATH
 
 
-def download_file(url: str, destination: str = DOWNLOADS_PATH) -> str:
+def download_file(url: str, destination: str = DOWNLOADS_PATH) -> dict:
     """
     Download the file at *url* to *destination*.
 
@@ -46,15 +46,20 @@ def download_file(url: str, destination: str = DOWNLOADS_PATH) -> str:
         response = requests.get(url, stream=True, timeout=30)
         response.raise_for_status()
     except requests.exceptions.MissingSchema:
-        return f"Invalid URL: '{url}'. Make sure it starts with http:// or https://."
+        msg = f"Invalid URL: '{url}'. Make sure it starts with http:// or https://."
+        return {"display": msg, "speak": "That URL is invalid."}
     except requests.exceptions.ConnectionError:
-        return f"Could not connect to '{url}'. Check your internet connection."
+        msg = f"Could not connect to '{url}'. Check your internet connection."
+        return {"display": msg, "speak": "I couldn't connect to the internet."}
     except requests.exceptions.HTTPError as exc:
-        return f"Download failed — server returned {exc.response.status_code}."
+        msg = f"Download failed — server returned {exc.response.status_code}."
+        return {"display": msg, "speak": "The download failed."}
     except requests.exceptions.Timeout:
-        return "Download timed out. The server took too long to respond."
+        msg = "Download timed out. The server took too long to respond."
+        return {"display": msg, "speak": "The download timed out."}
     except Exception as exc:
-        return f"Unexpected error while downloading: {exc}"
+        msg = f"Unexpected error while downloading: {exc}"
+        return {"display": msg, "speak": "An unexpected error occurred while downloading."}
 
     total_bytes = int(response.headers.get("content-length", 0))
 
@@ -74,12 +79,15 @@ def download_file(url: str, destination: str = DOWNLOADS_PATH) -> str:
                 fh.write(chunk)
                 bar.update(len(chunk))
     except PermissionError:
-        return f"Permission denied: cannot write to '{save_path}'."
+        msg = f"Permission denied: cannot write to '{save_path}'."
+        return {"display": msg, "speak": "Permission denied. I couldn't save the file."}
     except OSError as exc:
-        return f"File write error: {exc}"
+        msg = f"File write error: {exc}"
+        return {"display": msg, "speak": "There was an error saving the file."}
 
     size_str = _human_size(save_path.stat().st_size)
-    return f"Downloaded '{filename}' ({size_str}) to '{save_path}'."
+    msg = f"Downloaded '{filename}' ({size_str}) to '{save_path}'."
+    return {"display": msg, "speak": "Download complete."}
 
 
 # ── Internal helpers ───────────────────────────────────────────────────────────

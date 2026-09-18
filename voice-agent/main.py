@@ -133,15 +133,20 @@ def _process(transcript: str) -> bool:
         return True
 
     print(f"[Main] You said: '{transcript}'")
+    
+    import random
+    import threading
 
     # -- FAST PATH -------------------------------------------------------------
     fast_result = router.fast_route(transcript)
 
     if fast_result is not None:
+        tts.speak(random.choice(["On it.", "Sure."]))
+        
         response = fast_result.get("response", "")
         action   = fast_result.get("action")
 
-        print(f"[Main] Fast path -> action='{action}'")
+        print(f"[FAST PATH] -> {action}")
 
         _respond(response)
 
@@ -151,9 +156,20 @@ def _process(transcript: str) -> bool:
         return True
 
     # -- LLM PATH --------------------------------------------------------------
-    print("[Main] Querying LLM...")
+    tts.speak(random.choice(["Let me check.", "One moment."]))
+    print("[LLM PATH] -> sending to Ollama...")
+
+    llm_done = threading.Event()
+    def _timeout_speaker():
+        if not llm_done.wait(4.0):
+            tts.speak("Still working on it...")
+            
+    t = threading.Thread(target=_timeout_speaker)
+    t.daemon = True
+    t.start()
 
     llm_result = brain.query(transcript)
+    llm_done.set()
 
     if not llm_result:
         _respond("Sorry, I didn't get a response from the language model.")

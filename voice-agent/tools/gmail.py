@@ -12,7 +12,7 @@ _GMAIL_BASE    = "https://mail.google.com/mail/"
 _COMPOSE_BASE  = _GMAIL_BASE + "?view=cm"
 
 
-def open_gmail() -> str:
+def open_gmail() -> dict:
     """
     Open the Gmail inbox in the system's default browser.
 
@@ -20,12 +20,14 @@ def open_gmail() -> str:
     """
     try:
         webbrowser.open(_GMAIL_BASE + "#inbox")
-        return "Opening Gmail inbox in your browser."
+        msg = "Opening Gmail inbox in your browser."
+        return {"display": msg, "speak": "Opening Gmail for you."}
     except Exception as exc:
-        return f"Failed to open Gmail: {exc}"
+        msg = f"Failed to open Gmail: {exc}"
+        return {"display": msg, "speak": "There was an error opening Gmail."}
 
 
-def compose_email(to: str, subject: str = "", body: str = "") -> str:
+def compose_email(to: str, subject: str = "", body: str = "") -> dict:
     """
     Open Gmail's compose window pre-filled with *to*, *subject*, and *body*.
 
@@ -34,7 +36,7 @@ def compose_email(to: str, subject: str = "", body: str = "") -> str:
     Returns a success or failure message string.
     """
     if not to.strip():
-        return "Please provide a recipient email address."
+        return {"display": "Please provide a recipient email address.", "speak": "You didn't provide an email address."}
 
     params: dict[str, str] = {"to": to.strip()}
 
@@ -48,6 +50,8 @@ def compose_email(to: str, subject: str = "", body: str = "") -> str:
 
     try:
         webbrowser.open(url)
-        return f"Opening Gmail compose to '{to}'."
+        msg = f"Opening compose window for {to}."
+        return {"display": msg, "speak": "Composing email."}
     except Exception as exc:
-        return f"Failed to open Gmail compose: {exc}"
+        msg = f"Failed to open compose window: {exc}"
+        return {"display": msg, "speak": "I couldn't open the email composer."}

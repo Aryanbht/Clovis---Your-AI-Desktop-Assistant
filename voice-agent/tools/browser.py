@@ -47,7 +47,7 @@ def _open_in_browser(url: str, browser: str | None = None, incognito: bool = Fal
     webbrowser.open(url)
 
 
-def open_incognito(browser: str = "chrome") -> str:
+def open_incognito(browser: str = "chrome") -> dict:
     """Open a private browser window on Windows."""
     requested = browser.strip().lower()
     browser_specs = {
@@ -91,13 +91,16 @@ def open_incognito(browser: str = "chrome") -> str:
     if executable:
         try:
             subprocess.Popen([str(executable), flag], shell=False)
-            return f"Opening a private {browser} window."
+            msg = f"Opening a private {browser} window."
+            return {"display": msg, "speak": "Opening incognito mode."}
         except Exception as exc:
-            return f"Failed to open private {browser}: {exc}"
-    return f"I couldn't find {browser} on this system."
+            msg = f"Failed to open private {browser}: {exc}"
+            return {"display": msg, "speak": "I couldn't open the browser in private mode."}
+    msg = f"I couldn't find {browser} on this system."
+    return {"display": msg, "speak": f"I couldn't find {browser} on your PC."}
 
 
-def open_url(url: str, browser: str | None = None) -> str:
+def open_url(url: str, browser: str | None = None) -> dict:
     """
     Open *url* in the system's default web browser.
 
@@ -106,7 +109,7 @@ def open_url(url: str, browser: str | None = None) -> str:
     Returns a success or failure message string.
     """
     if not url.strip():
-        return "No URL provided."
+        return {"display": "No URL provided.", "speak": "You didn't give me a URL to open."}
 
     # Ensure the URL has a scheme so webbrowser handles it correctly
     if not url.startswith(("http://", "https://", "ftp://")):
@@ -115,19 +118,21 @@ def open_url(url: str, browser: str | None = None) -> str:
     try:
         _open_in_browser(url, browser)
         destination = f" in {browser}" if browser else " in your browser"
-        return f"Opening {url}{destination}."
+        msg = f"Opening {url}{destination}."
+        return {"display": msg, "speak": "Opening URL."}
     except Exception as exc:
-        return f"Failed to open browser: {exc}"
+        msg = f"Failed to open browser: {exc}"
+        return {"display": msg, "speak": "There was an error opening the browser."}
 
 
-def search_web(query: str, browser: str | None = None, incognito: bool = False) -> str:
+def search_web(query: str, browser: str | None = None, incognito: bool = False) -> dict:
     """
     Search DuckDuckGo for *query* in the system's default web browser.
 
     Returns a success or failure message string.
     """
     if not query.strip():
-        return "No search query provided."
+        return {"display": "No search query provided.", "speak": "You didn't tell me what to search for."}
 
     encoded = urllib.parse.quote_plus(query.strip())
     url     = f"https://duckduckgo.com/?q={encoded}"
@@ -136,6 +141,8 @@ def search_web(query: str, browser: str | None = None, incognito: bool = False) 
         _open_in_browser(url, browser, incognito=incognito)
         mode = " incognito" if incognito else ""
         destination = f" in{mode} {browser}" if browser else f" in{mode} your browser"
-        return f"Searching DuckDuckGo for: {query}{destination}."
+        msg = f"Searching DuckDuckGo for: {query}{destination}."
+        return {"display": msg, "speak": "Searching for that on the web."}
     except Exception as exc:
-        return f"Failed to open browser for search: {exc}"
+        msg = f"Failed to open browser for search: {exc}"
+        return {"display": msg, "speak": "There was an error opening the browser to search."}

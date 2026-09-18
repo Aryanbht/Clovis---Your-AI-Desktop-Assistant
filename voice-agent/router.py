@@ -309,6 +309,10 @@ def _launch_app(app_name: str) -> str:
     """
     from tools.system_ops import open_app as _sys_open_app
     result = _sys_open_app(app_name)
+    
+    if isinstance(result, dict):
+        result = result.get("speak", str(result))
+        
     # system_ops.open_app returns a human string; treat anything starting with
     # "Opening" or "Launched" as success, everything else as failure.
     if result.lower().startswith(("opening", "launched")):
@@ -559,11 +563,12 @@ def handle_fast_intent(intent: str, transcript: str) -> RouteResult:
 
 def _handle_greet(transcript: str) -> tuple[str, None]:
     tod = get_time_of_day()
-    return f"Hey Aryan! Good {tod}. What do you need?", None
+    return f"Hey Aryan, good {tod}. What do you need?", None
 
 
 def _handle_tell_time(transcript: str) -> tuple[str, None]:
-    return f"It's {_now_time_str()} right now.", None
+    t_str = _now_time_str().replace(":", " ")
+    return f"It is {t_str} right now.", None
 
 
 def _handle_tell_date(transcript: str) -> tuple[str, None]:
@@ -573,7 +578,7 @@ def _handle_tell_date(transcript: str) -> tuple[str, None]:
 def _handle_quick_math(transcript: str) -> tuple[str, None]:
     result = _eval_math(transcript)
     if result is not None:
-        return f"That's {result}.", None
+        return f"The answer is {result}.", None
     return "Sorry, I couldn't work that out. Could you rephrase it?", None
 
 
@@ -586,6 +591,8 @@ def _handle_incognito(transcript: str) -> tuple[str, str | None]:
 
     from tools.browser import open_incognito
     response = open_incognito(browser)
+    if isinstance(response, dict):
+        return response["speak"], "incognito"
     return response, "incognito" if response.lower().startswith("opening") else None
 
 
@@ -593,8 +600,8 @@ def _handle_open_app(transcript: str) -> tuple[str, str]:
     app_name = _extract_app_name(transcript)
     status   = _launch_app(app_name)
     if status == "launched":
-        return f"Opening {app_name.title()} for you.", "open_app"
-    return f"I couldn't find {app_name.title()} on this system.", None
+        return f"Opening {app_name.title()}.", "open_app"
+    return f"I couldn't find {app_name.title()} on your PC.", None
 
 
 def _handle_volume_up(transcript: str) -> tuple[str, str]:
@@ -602,7 +609,7 @@ def _handle_volume_up(transcript: str) -> tuple[str, str]:
     current, result = _change_master_volume(amount)
     if current is None:
         return result, None
-    return f"Volume increased from {current}% to {result}%.", "volume_up"
+    return "Volume increased.", "volume_up"
 
 
 def _handle_volume_down(transcript: str) -> tuple[str, str]:
@@ -610,12 +617,12 @@ def _handle_volume_down(transcript: str) -> tuple[str, str]:
     current, result = _change_master_volume(-amount)
     if current is None:
         return result, None
-    return f"Volume decreased from {current}% to {result}%.", "volume_down"
+    return "Volume decreased.", "volume_down"
 
 
 def _handle_mute(transcript: str) -> tuple[str, str]:
     pyautogui.press("volumemute")
-    return "Toggled mute.", "mute"
+    return "Muted.", "mute"
 
 
 def _handle_screenshot(transcript: str) -> tuple[str, str]:
@@ -628,13 +635,13 @@ def _handle_screenshot(transcript: str) -> tuple[str, str]:
     time.sleep(0.3)  # small delay so the assistant UI doesn't appear in shot
     img = pyautogui.screenshot()
     img.save(save_path)
-    return f"Screenshot saved to your Desktop as screenshot_{timestamp}.png", "screenshot"
+    return "Screenshot saved.", "screenshot"
 
 
 def _handle_lock_screen(_transcript: str) -> tuple[str, str]:
     if sys.platform == "win32":
         os.system("rundll32.exe user32.dll,LockWorkStation")
-        return "Locking the screen. See you soon, Aryan.", "lock_screen"
+        return "Locking your screen.", "lock_screen"
     return "Screen locking is only supported on Windows.", None
 
 
@@ -673,11 +680,13 @@ def _handle_send_whatsapp(transcript: str) -> tuple[str, str | None]:
 
     from tools.messenger import send_whatsapp
     result = send_whatsapp(contact_name, message)
+    if isinstance(result, dict):
+        return result["speak"], "send_whatsapp"
     return result, "send_whatsapp"
 
 
 def _handle_acknowledge(_transcript: str) -> tuple[str, None]:
-    return "Anytime, Aryan.", None
+    return "Anytime Aryan.", None
 
 
 def _handle_farewell(_transcript: str) -> tuple[str, str]:
@@ -685,4 +694,4 @@ def _handle_farewell(_transcript: str) -> tuple[str, str]:
 
 
 def _handle_unknown(_transcript: str) -> tuple[str, None]:
-    return "I'm not sure how to handle that directly. Let me think…", None
+    return "I am not sure how to handle that directly. Let me think.", None

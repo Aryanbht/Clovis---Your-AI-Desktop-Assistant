@@ -382,7 +382,7 @@ def _resolve_any(path: str, *, search_system: bool = False) -> str:
     return resolved   # caller will surface the error
 
 
-def create_folder(path: str) -> str:
+def create_folder(path: str) -> dict:
     """
     Create a folder (and any missing parents) at *path*.
     Uses fuzzy matching for PARENT directories only, creates the exact folder name specified.
@@ -399,11 +399,14 @@ def create_folder(path: str) -> str:
         # Create the exact folder name at the resolved parent location
         target = resolved_parent / folder_name
         target.mkdir(parents=True, exist_ok=True)
-        return f"Folder created: {target}"
+        msg = f"Folder created: {target}"
+        return {"display": msg, "speak": "Done. Folder has been created."}
     except PermissionError:
-        return f"Permission denied: cannot create folder at '{path}'."
+        msg = f"Permission denied: cannot create folder at '{path}'."
+        return {"display": msg, "speak": "Permission denied. I couldn't create the folder."}
     except Exception as exc:
-        return f"Failed to create folder '{path}': {exc}"
+        msg = f"Failed to create folder '{path}': {exc}"
+        return {"display": msg, "speak": "There was an error creating the folder."}
 
 
 # Standard path components that are NOT meaningful folder names chosen by the user.
@@ -457,7 +460,7 @@ def _resolve_file_path(path: str) -> str:
     return str(p)   # fallback; will surface a clear error
 
 
-def create_file(path: str, content: str = "") -> str:
+def create_file(path: str, content: str = "") -> dict:
     """
     Create a file at *path* with optional *content*.
     The parent folder is resolved with fuzzy + system-wide search so the file
@@ -469,26 +472,31 @@ def create_file(path: str, content: str = "") -> str:
         resolved = _resolve_file_path(path)
         target   = Path(resolved)
         if target.exists() and target.is_dir():
-            return (
+            msg = (
                 f"'{target}' is a folder, not a file path. "
                 "Please include a filename such as 'mera.txt'."
             )
+            return {"display": msg, "speak": "That is a folder, please provide a filename."}
         if not target.name or target.name in {".", ".."}:
-            return "Please provide a filename, for example 'mera.txt'."
+            return {"display": "Please provide a filename, for example 'mera.txt'.", "speak": "Please provide a filename."}
         if not target.parent.exists():
-            return (
+            msg = (
                 f"Folder '{target.parent}' does not exist. "
                 "Create it first or provide an existing folder path."
             )
+            return {"display": msg, "speak": "That folder doesn't exist. Please create it first."}
         target.write_text(content, encoding="utf-8")
-        return f"File created: {target}"
+        msg = f"File created: {target}"
+        return {"display": msg, "speak": "File created successfully."}
     except PermissionError:
-        return f"Permission denied: cannot write to '{path}'."
+        msg = f"Permission denied: cannot write to '{path}'."
+        return {"display": msg, "speak": "Permission denied. I couldn't create the file."}
     except Exception as exc:
-        return f"Failed to create file '{path}': {exc}"
+        msg = f"Failed to create file '{path}': {exc}"
+        return {"display": msg, "speak": "There was an error creating the file."}
 
 
-def list_files(path: str) -> str:
+def list_files(path: str) -> dict:
     """
     List the contents of *path*, with fuzzy folder name matching.
     If the exact path doesn't exist, finds the closest matching folder name.
@@ -499,14 +507,14 @@ def list_files(path: str) -> str:
         target   = Path(resolved)
 
         if not target.exists():
-            return f"'{path}' does not exist."
+            return {"display": f"'{path}' does not exist.", "speak": "That path does not exist."}
         if not target.is_dir():
-            return f"'{path}' is a file, not a folder."
+            return {"display": f"'{path}' is a file, not a folder.", "speak": "That is a file, not a folder."}
 
         entries = sorted(target.iterdir(), key=lambda e: (e.is_file(), e.name.lower()))
 
         if not entries:
-            return f"'{path}' is empty."
+            return {"display": f"'{path}' is empty.", "speak": "That folder is empty."}
 
         lines: list[str] = []
         folders = [e for e in entries if e.is_dir()]
@@ -524,15 +532,51 @@ def list_files(path: str) -> str:
 
         # Short summary at the end for TTS (voice mode reads this last line)
         lines.append(f"\nFound {len(folders)} folder(s) and {len(files)} file(s) in '{target.name}'.")
-        return "\n".join(lines)
+        display_msg = "\n".join(lines)
+
+        total_items = len(folders) + len(files)
+        item_type = "items"
+        if len(folders) == 0:
+            item_type = "files"
+        elif len(files) == 0:
+            item_type = "folders"
+            
+        speak_lines = []
+        if total_items > 5:
+            speak_lines.append(f"I found {total_items} {item_type}. The first five are")
+            items_to_read = (folders + files)[:5]
+        else:
+            speak_lines.append(f"I found {total_items} {item_type}.")
+            items_to_read = (folders + files)
+
+        for item in items_to_read:
+            name = item.name
+            if item.is_file() and "." in name:
+                name = name.replace(".", " dot ")
+            speak_lines.append(name)
+        
+        intro = speak_lines[0]
+        items = speak_lines[1:]
+        if len(items) == 0:
+            speak_msg = intro
+        elif len(items) == 1:
+            speak_msg = f"{intro} {items[0]}."
+        elif len(items) == 2:
+            speak_msg = f"{intro} {items[0]} and {items[1]}."
+        else:
+            speak_msg = f"{intro} " + ", ".join(items[:-1]) + ", and " + items[-1] + "."
+
+        return {"display": display_msg, "speak": speak_msg}
 
     except PermissionError:
-        return f"Permission denied: cannot read '{path}'."
+        msg = f"Permission denied: cannot read '{path}'."
+        return {"display": msg, "speak": "Permission denied. I couldn't read the folder."}
     except Exception as exc:
-        return f"Failed to list '{path}': {exc}"
+        msg = f"Failed to list '{path}': {exc}"
+        return {"display": msg, "speak": "There was an error reading the folder."}
 
 
-def delete_file(path: str) -> str:
+def delete_file(path: str) -> dict:
     """
     Delete a file or folder at *path*, with fuzzy name matching.
     Returns a success or failure message string.
@@ -541,22 +585,26 @@ def delete_file(path: str) -> str:
         target = Path(_resolve_any(path))
 
         if not target.exists():
-            return f"'{path}' does not exist."
+            return {"display": f"'{path}' does not exist.", "speak": "That path does not exist."}
 
         if target.is_dir():
             shutil.rmtree(target)
-            return f"Folder deleted: {target}"
+            msg = f"Folder deleted: {target}"
+            return {"display": msg, "speak": "Folder deleted successfully."}
         else:
             target.unlink()
-            return f"File deleted: {target}"
+            msg = f"File deleted: {target}"
+            return {"display": msg, "speak": "File deleted successfully."}
 
     except PermissionError:
-        return f"Permission denied: cannot delete '{path}'."
+        msg = f"Permission denied: cannot delete '{path}'."
+        return {"display": msg, "speak": "Permission denied. I couldn't delete it."}
     except Exception as exc:
-        return f"Failed to delete '{path}': {exc}"
+        msg = f"Failed to delete '{path}': {exc}"
+        return {"display": msg, "speak": "There was an error deleting it."}
 
 
-def move_file(src: str, dest: str) -> str:
+def move_file(src: str, dest: str) -> dict:
     """
     Move or rename file/folder at *src* to *dest*, with fuzzy name matching.
     Returns a success or failure message string.
@@ -566,16 +614,19 @@ def move_file(src: str, dest: str) -> str:
         destination = Path(_resolve_any(dest))
 
         if not source.exists():
-            return f"Source '{src}' does not exist."
+            return {"display": f"Source '{src}' does not exist.", "speak": "The source file doesn't exist."}
 
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(source), str(destination))
-        return f"Moved '{source.name}' -> '{destination}'."
+        msg = f"Moved '{source.name}' -> '{destination}'."
+        return {"display": msg, "speak": "File moved."}
 
     except PermissionError:
-        return f"Permission denied: cannot move '{src}'."
+        msg = f"Permission denied: cannot move '{src}'."
+        return {"display": msg, "speak": "Permission denied. I couldn't move the file."}
     except Exception as exc:
-        return f"Failed to move '{src}' to '{dest}': {exc}"
+        msg = f"Failed to move '{src}' to '{dest}': {exc}"
+        return {"display": msg, "speak": "There was an error moving the file."}
 
 
 # ── Internal helper ────────────────────────────────────────────────────────────
