@@ -87,15 +87,15 @@ echo  [OK] Ollama found.
 
 rem -- 5. Pull LLM model --------------------------------------------------------
 echo.
-echo [5/5] Pulling Ollama model (qwen2.5:3b-instruct)...
+echo [5/5] Pulling Ollama model (qwen3:8b)...
 echo  Note: This is about 2 GB and only downloads once.
 echo  You can press Ctrl+C to skip and pull it later with:
-echo    ollama pull qwen2.5:3b-instruct
+echo    ollama pull qwen3:8b
 echo.
-ollama pull qwen2.5:3b-instruct
+ollama pull qwen3:8b
 if errorlevel 1 (
     echo  [WARNING] Model pull failed. Run this later:
-    echo    ollama pull qwen2.5:3b-instruct
+    echo    ollama pull qwen3:8b
 ) else (
     echo  [OK] Model ready.
 )

@@ -935,3 +935,39 @@ I've created t
 
 Processing audio with duration 00:06.300
 VAD filter removed 00:05.148 of audio
+HTTP Request: GET https://huggingface.co/api/agent-harnesses "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/tree/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66?recursive=true&expand=false "HTTP/1.1 200 OK"
+HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-base/resolve/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/model.bin "HTTP/1.1 302 Found"
+HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-base/resolve/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/tokenizer.json "HTTP/1.1 307 Temporary Redirect"
+HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-base/resolve/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/config.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-base/resolve/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/vocabulary.txt "HTTP/1.1 307 Temporary Redirect"
+HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/config.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fconfig.json=&etag=%22867cf1a0fece1394e01d55e287ba2f09a577c046%22 "HTTP/1.1 200 OK"
+HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/tokenizer.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Ftokenizer.json=&etag=%227818adb6de9fa3064d3ff81226fdd675be1f6344%22 "HTTP/1.1 200 OK"
+HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/vocabulary.txt?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fvocabulary.txt=&etag=%22c9074644d9d1205686f16d411564729461324b75%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/config.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fconfig.json=&etag=%22867cf1a0fece1394e01d55e287ba2f09a577c046%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/tokenizer.json?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Ftokenizer.json=&etag=%227818adb6de9fa3064d3ff81226fdd675be1f6344%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/faster-whisper-base/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/vocabulary.txt?%2FSystran%2Ffaster-whisper-base%2Fresolve%2Febe41f70d5b6dfa9166e2c581c45c9c0cfc57b66%2Fvocabulary.txt=&etag=%22c9074644d9d1205686f16d411564729461324b75%22 "HTTP/1.1 200 OK"
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/xet-read-token/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66 "HTTP/1.1 200 OK"
+Processing audio with duration 00:04.500
+VAD filter removed 00:03.348 of audio
+Processing audio with duration 00:02.400
+VAD filter removed 00:01.344 of audio
+[2026-09-18 19:51:50] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=Hey Aryan! Ready to crush whatever you've got on your mind. Need help organizing, sending a message, or just brainstormi
+
+Processing audio with duration 00:03.600
+VAD filter removed 00:01.840 of audio
+Processing audio with duration 00:03.300
+VAD filter removed 00:01.444 of audio
+Processing audio with duration 00:03.900
+VAD filter removed 00:01.916 of audio
+Processing audio with duration 00:02.400
+VAD filter removed 00:02.400 of audio
+Processing audio with duration 00:06.000
+VAD filter removed 00:04.080 of audio
+Processing audio with duration 00:04.200
+VAD filter removed 00:01.800 of audio
+Processing audio with duration 00:07.500
+VAD filter removed 00:06.348 of audio
