@@ -21,6 +21,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import ui
 
 # ── Default voice configuration ────────────────────────────────────────────────
 
@@ -77,7 +78,7 @@ def set_voice(voice_name: str) -> None:
     """
     global _current_voice
     _current_voice = voice_name.strip()
-    print(f"[TTS] Voice set to: {_current_voice}")
+    ui.console.print(f"[dim cyan][TTS] Voice set to: {_current_voice}[/dim cyan]")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -93,7 +94,7 @@ def _speak_edge(text: str) -> bool:
     try:
         import edge_tts  # type: ignore  # optional dependency
     except ImportError:
-        print("[TTS] edge-tts not installed — falling back to pyttsx3.")
+        ui.console.print("[dim yellow][TTS] edge-tts not installed — falling back to pyttsx3.[/dim yellow]")
         return False
 
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".mp3", prefix="va_tts_")
@@ -106,7 +107,7 @@ def _speak_edge(text: str) -> bool:
         return True
 
     except Exception as exc:
-        print(f"[TTS] edge-tts error: {exc} — falling back to pyttsx3.")
+        ui.console.print(f"[dim yellow][TTS] edge-tts error: {exc} — falling back to pyttsx3.[/dim yellow]")
         return False
 
     finally:
@@ -145,7 +146,7 @@ def _play_audio(path: str) -> None:
     except ImportError:
         pass  # playsound not installed — try subprocess
     except Exception as exc:
-        print(f"[TTS] playsound error: {exc} — trying subprocess player.")
+        ui.console.print(f"[dim yellow][TTS] playsound error: {exc} — trying subprocess player.[/dim yellow]")
 
     # ── Subprocess fallback ────────────────────────────────────────────────────
     _play_via_subprocess(path)
@@ -186,7 +187,7 @@ def _play_via_subprocess(path: str) -> None:
                 except (FileNotFoundError, subprocess.CalledProcessError):
                     continue
     except Exception as exc:
-        print(f"[TTS] Subprocess audio player error: {exc}")
+        ui.console.print(f"[dim red][TTS] Subprocess audio player error: {exc}[/dim red]")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -219,7 +220,7 @@ def _speak_pyttsx3(text: str) -> None:
         engine.stop()
 
     except Exception as exc:
-        print(f"[TTS] pyttsx3 error: {exc}")
+        ui.console.print(f"[dim red][TTS] pyttsx3 error: {exc}[/dim red]")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

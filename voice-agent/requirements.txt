@@ -26,3 +26,6 @@ pywin32>=306         # required by pycaw on Windows
 
 # Progress bars (used by downloader)
 tqdm>=4.66.0
+
+# Terminal UI
+rich>=13.0.0

@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from tools import browser, downloader, file_ops, gmail, messenger, system_ops
+import ui
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -46,6 +47,7 @@ def _log_event(intent: str, params: dict, tool_output: str, response: str) -> No
         "             TOOL_OUT=%-60s | SPOKEN=%s\n",
         ts, intent, params, tool_output[:120], response[:120],
     )
+    ui.log_intent("LLM", intent, params)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -139,18 +141,17 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
 
     if tool_fn is None:
         msg = f"No tool registered for intent '{intent}'."
-        print(f"[Dispatcher] [WARN] {msg}")
+        ui.console.print(f"[dim yellow][Dispatcher] {msg}[/dim yellow]")
         _log_event(intent, params, tool_output=msg, response=response)
         return response   # still speak the LLM's response; don't crash
 
     # ── Execute the tool ───────────────────────────────────────────────────────
-    print(f"[Dispatcher] -> {intent}({_fmt_params(params)})")
 
     try:
         tool_result = tool_fn(**params)
 
         if isinstance(tool_result, dict) and "speak" in tool_result:
-            print(tool_result["display"])        # rich output to console
+            ui.console.print(f"[dim]{tool_result['display']}[/dim]")  # rich output to console
             _log.info(tool_result["display"])    # log the display version
             tool_output_display = tool_result["display"]
             spoken = tool_result["speak"]        # clean version for TTS
@@ -163,14 +164,13 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
         # Mismatched kwargs — likely a brain hallucination
         tool_output_display = f"Parameter error for '{intent}': {exc}"
         spoken = tool_output_display
-        print(f"[Dispatcher] [ERROR] {tool_output_display}")
+        ui.show_error(tool_output_display)
     except Exception as exc:
         tool_output_display = f"Error executing '{intent}': {exc}"
         spoken = tool_output_display
-        print(f"[Dispatcher] [ERROR] {tool_output_display}")
+        ui.show_error(tool_output_display)
 
     _first_line = tool_output_display.split("\n")[0][:120]
-    print(f"[Dispatcher]   tool_output: {_first_line}")
 
     # ── For data intents, the tool output IS the answer ────────────────────────
     # The LLM generates a vague summary before the tool runs, so it can't know

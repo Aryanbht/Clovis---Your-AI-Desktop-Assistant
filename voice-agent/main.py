@@ -34,6 +34,7 @@ import dispatcher
 import listener
 import router
 import tts
+import ui
 
 
 # ==============================================================================
@@ -42,35 +43,20 @@ import tts
 
 def _startup_checks(mode: str) -> None:
     """Print banner, check Ollama availability, and speak the boot message."""
-    print("=" * 55)
-    print("  Clovis voice assistant")
-    print(f"      Model  : {config.OLLAMA_MODEL}")
-    print(f"      Whisper: {config.WHISPER_MODEL_SIZE}")
-    print(f"      Wake   : '{config.WAKE_WORD}'")
-    print(f"      Mode   : {mode}")
-    print("=" * 55)
-
-    if brain.is_ollama_running():
-        print("[Main] Ollama is running -- LLM features available.")
-    else:
-        print(
-            "[Main] Ollama not detected. "
-            "LLM features will be unavailable.\n"
-            "       Start it with: ollama serve"
-        )
-
-    print()
+    is_running = brain.is_ollama_running()
+    ui.show_status_panel(config.OLLAMA_MODEL, config.WHISPER_MODEL_SIZE, config.WAKE_WORD, mode, is_running)
+    ui.show_ollama_status(is_running)
 
     if mode == "text":
-        print("[Main] Text mode -- type your commands below.\n")
+        ui.console.print("[dim cyan]Text mode -- type your commands below.[/dim cyan]\n")
         tts.speak("Clovis online. Text mode active.")
     elif mode == "hybrid":
-        print("[Main] Hybrid mode -- press Enter to type or say nothing to use voice.\n")
+        ui.console.print("[dim cyan]Hybrid mode -- press Enter to type or say nothing to use voice.[/dim cyan]\n")
         tts.speak("Clovis online. Hybrid mode active.")
         # Pre-load Whisper so it's ready when the user presses Enter
         listener.preload_model()
     else:
-        print(f"[Main] Say '{config.WAKE_WORD.capitalize()}' to activate.\n")
+        ui.console.print(f"[dim cyan]Say '{config.WAKE_WORD.capitalize()}' to activate.[/dim cyan]\n")
         # Pre-load Whisper NOW so model-load messages appear before the mic bar
         listener.preload_model()
         tts.speak("Clovis online. Waiting for wake word.")
@@ -83,13 +69,16 @@ def _startup_checks(mode: str) -> None:
 
 def _input_voice() -> str:
     """Record mic and return transcript (may be empty string)."""
-    return listener.listen()
+    ui.show_listening()
+    transcript = listener.listen()
+    ui.stop_listening()
+    return transcript
 
 
 def _input_text(prompt: str = "You: ") -> str:
     """Prompt the user to type a command. Returns stripped string."""
     try:
-        text = input(prompt).strip()
+        text = ui.console.input(f"[bright_cyan]{prompt}[/bright_cyan]").strip()
         return text
     except EOFError:
         return ""
@@ -102,7 +91,7 @@ def _input_hybrid() -> str:
     Typing anything -> use that text directly.
     """
     try:
-        typed = input("You (type or press Enter to speak): ").strip()
+        typed = ui.console.input("[bright_cyan]You (type or press Enter to speak): [/bright_cyan]").strip()
     except EOFError:
         return ""
 
@@ -110,7 +99,6 @@ def _input_hybrid() -> str:
         return typed.lower()
 
     # User pressed Enter -> fall back to voice
-    print("[Main] Listening...")
     return _input_voice()
 
 
@@ -134,15 +122,14 @@ def _process(transcript: str) -> bool:
     
     current_time = time.time()
     if current_time - _last_command_time > 300:  # 5 minutes
-        print("[Main] 5 minutes of inactivity. Clearing session memory.")
+        ui.console.print("[dim yellow]5 minutes of inactivity. Clearing session memory.[/dim yellow]")
         brain.clear_memory()
     _last_command_time = current_time
 
     if not transcript:
-        print("[Main] (empty input -- nothing to do)")
         return True
 
-    print(f"[Main] You said: '{transcript}'")
+    ui.console.print(f"[dim cyan]You said:[/dim cyan] [white]'{transcript}'[/white]")
     
     import random
     import threading
@@ -156,7 +143,7 @@ def _process(transcript: str) -> bool:
         response = fast_result.get("response", "")
         action   = fast_result.get("action")
 
-        print(f"[FAST PATH] -> {action}")
+        ui.log_intent("FAST", str(action), {"input": transcript})
 
         _respond(response)
 
@@ -167,7 +154,6 @@ def _process(transcript: str) -> bool:
 
     # -- LLM PATH --------------------------------------------------------------
     tts.speak(random.choice(["Let me check.", "One moment."]))
-    print("[LLM PATH] -> sending to Ollama...")
 
     llm_done = threading.Event()
     def _timeout_speaker():
@@ -178,7 +164,10 @@ def _process(transcript: str) -> bool:
     t.daemon = True
     t.start()
 
+    ui.show_thinking()
     llm_result = brain.query(transcript)
+    ui.stop_thinking()
+    
     llm_done.set()
 
     if not llm_result:
@@ -194,7 +183,7 @@ def _respond(text: str) -> None:
     """Print and speak a response."""
     if not text:
         return
-    print(f"[Clovis] {text}")
+    ui.show_response(text)
     tts.speak(text)
 
 
@@ -214,7 +203,7 @@ def _wake_word_loop() -> None:
 
     while True:
         # ── SLEEP PHASE: wait for wake word ───────────────────────────────────
-        print(f"\n[Main] Sleeping. Say '{config.WAKE_WORD}' to activate.\n")
+        ui.console.print(f"\n[dim cyan]Sleeping. Say '{config.WAKE_WORD}' to activate.[/dim cyan]\n")
         while True:
             detected = listener.listen_for_wake_word(config.WAKE_WORD, cycle=cycle)
             cycle += 1
@@ -222,8 +211,8 @@ def _wake_word_loop() -> None:
                 break
 
         # ── ACTIVE PHASE: keep listening until 5 min of inactivity ───────────
-        print("\n[Main] Active! Listening for your command.")
-        print(f"[Main] (I'll go back to sleep after {SLEEP_TIMEOUT // 60} min of silence.)\n")
+        ui.console.print("\n[bright_green]Active! Listening for your command.[/bright_green]")
+        ui.console.print(f"[dim](I'll go back to sleep after {SLEEP_TIMEOUT // 60} min of silence.)[/dim]\n")
         tts.speak("Yes?")
 
         last_activity = time.time()
@@ -236,13 +225,13 @@ def _wake_word_loop() -> None:
                 remaining = SLEEP_TIMEOUT - elapsed
 
                 if elapsed >= SLEEP_TIMEOUT:
-                    print("\n[Main] No activity for 5 minutes. Going to sleep...")
+                    ui.console.print("\n[dim yellow]No activity for 5 minutes. Going to sleep...[/dim yellow]")
                     tts.speak("Going to sleep. Say " + config.WAKE_WORD + " to wake me up.")
                     break   # back to sleep phase
 
                 mins = int(remaining // 60)
                 secs = int(remaining % 60)
-                print(f"[Main] Still listening... ({mins}m {secs}s until sleep)")
+                ui.console.print(f"[dim]Still listening... ({mins}m {secs}s until sleep)[/dim]", end="\r")
                 continue
 
             # Got a real command -- reset the inactivity timer
@@ -253,7 +242,7 @@ def _wake_word_loop() -> None:
                 return   # farewell command -- exit completely
 
             # After responding, immediately listen for the next command
-            print("[Main] Ready for next command (or stay quiet for 5 min to sleep).")
+            ui.console.print("\n[dim cyan]Ready for next command (or stay quiet for 5 min to sleep).[/dim cyan]")
 
 
 
@@ -261,7 +250,7 @@ def _no_wake_word_loop() -> None:
     """Voice command -> process -> repeat (no wake word needed)."""
     tts.speak("Direct voice mode. Listening now.")
     while True:
-        print("\n[Main] Listening for command...")
+        ui.console.print("\n[dim cyan]Listening for command...[/dim cyan]")
         transcript = _input_voice()
         keep_going = _process(transcript)
         if not keep_going:
@@ -270,7 +259,7 @@ def _no_wake_word_loop() -> None:
 
 def _text_loop() -> None:
     """Text command -> process -> repeat."""
-    print("[Main] Type your command and press Enter. Type 'bye' to exit.\n")
+    ui.console.print("[dim cyan]Type your command and press Enter. Type 'bye' to exit.[/dim cyan]\n")
     while True:
         transcript = _input_text("You: ")
         if not transcript:
@@ -282,7 +271,7 @@ def _text_loop() -> None:
 
 def _hybrid_loop() -> None:
     """Each turn: type a command OR press Enter to speak."""
-    print("[Main] Press Enter to speak, or type a command directly.\n")
+    ui.console.print("[dim cyan]Press Enter to speak, or type a command directly.[/dim cyan]\n")
     while True:
         transcript = _input_hybrid()
         if not transcript:
@@ -332,7 +321,22 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
 
-    # Determine friendly mode name for the banner
+    # Show menu if no arguments were provided at all
+    if not any([args.text_mode, args.hybrid_mode, args.no_wake_word]) and len(sys.argv) == 1:
+        ui.show_banner()
+        choice = ui.show_menu()
+        if choice == "1":
+            args.text_mode = True
+        elif choice == "2":
+            pass # default wake word mode
+        elif choice == "3":
+            args.no_wake_word = True
+        elif choice == "4":
+            args.hybrid_mode = True
+        else:
+            ui.show_farewell()
+            sys.exit(0)
+
     if args.text_mode:
         mode = "text"
     elif args.hybrid_mode:
@@ -341,6 +345,10 @@ def main() -> None:
         mode = "voice (no wake word)"
     else:
         mode = "voice (wake word)"
+
+    # If args were passed, banner was not shown yet
+    if len(sys.argv) > 1:
+        ui.show_banner()
 
     _startup_checks(mode)
 
@@ -355,12 +363,13 @@ def main() -> None:
             _wake_word_loop()
 
     except KeyboardInterrupt:
-        print("\n[Main] Shutting down...")
+        ui.console.print("\n[dim yellow]Shutting down...[/dim yellow]")
         tts.speak(f"Shutting down. Goodbye {config.USERNAME}.")
+        ui.show_farewell()
         sys.exit(0)
 
     except Exception as exc:
-        print(f"[Main] Unexpected error: {exc}")
+        ui.show_error(f"Unexpected error: {exc}")
         tts.speak("An unexpected error occurred. Restarting.")
         main()
 

@@ -45,9 +45,7 @@ WAKE_CLIP_SEC   = 2.0      # duration of the short clip for wake-word detection
 # ── Whisper model (loaded once, module-level) ──────────────────────────────────
 
 def _load_model() -> WhisperModel:
-    print("[Listener] Loading Whisper model... (first run only, please wait)")
     model = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="int8")
-    print("[Listener] Whisper model ready.")
     return model
 
 
@@ -124,7 +122,6 @@ def listen() -> str:
         or an error occurred.
     """
     PRE_SPEECH_TIMEOUT = 6.0   # seconds to wait for speech to START
-    print("[Listener] Listening... (speak now)")
 
     chunks: list[np.ndarray] = []
     silent_duration  = 0.0
@@ -141,7 +138,7 @@ def listen() -> str:
                 chunk, overflowed = stream.read(CHUNK_SAMPLES)
 
                 if overflowed:
-                    print("[Listener] Warning: input overflow detected.")
+                    pass  # suppress overflow warning
 
                 chunk = chunk.flatten()
                 chunks.append(chunk)
@@ -157,7 +154,6 @@ def listen() -> str:
                     else:
                         # Still waiting for speech; bail if pre-speech window expires
                         if total_duration >= PRE_SPEECH_TIMEOUT:
-                            print("[Listener] No speech detected.")
                             return ""
                 else:
                     # Phase 2: track silence after speech has begun
@@ -169,11 +165,8 @@ def listen() -> str:
                         silent_duration = 0.0  # reset on renewed speech
 
     except sd.PortAudioError as exc:
-        print(f"[Listener] Microphone error: {exc}")
-        print("[Listener]   -> Check that a microphone is connected and not in use by another app.")
         return ""
     except Exception as exc:
-        print(f"[Listener] Unexpected audio error: {exc}")
         return ""
 
     if not chunks or not speech_started:
@@ -193,8 +186,6 @@ def listen() -> str:
         except OSError:
             pass
 
-    if transcript:
-        print(f"[Listener] Heard: '{transcript}'")
     return transcript
 
 
@@ -223,8 +214,7 @@ def listen_for_wake_word(wake_word: str, cycle: int = 0) -> bool:
 
     # Show a live indicator every 3 cycles (~6 seconds) so the user knows
     # the assistant is actively listening.
-    if cycle % 3 == 0:
-        print(f'[Listener] Listening for wake word "{wake_word}" ... (say it clearly)', end="\r")
+    # suppressed to prevent breaking rich Live layout
 
     try:
         audio = sd.rec(
@@ -237,21 +227,12 @@ def listen_for_wake_word(wake_word: str, cycle: int = 0) -> bool:
         audio = audio.flatten()
 
     except sd.PortAudioError as exc:
-        print(f"\n[Listener] Microphone error during wake-word detection: {exc}")
-        print("[Listener]   -> Ensure a microphone is available and not blocked.")
         time.sleep(1.0)  # back-off before next attempt
         return False
     except Exception as exc:
-        print(f"\n[Listener] Unexpected error during wake-word detection: {exc}")
         return False
 
     rms = _rms(audio)
-
-    # Show mic level every cycle so the user can see the mic is picking up sound
-    bar_len   = 20
-    filled    = int(min(rms / 800, 1.0) * bar_len)
-    level_bar = "[" + "#" * filled + "-" * (bar_len - filled) + "]"
-    print(f'[Listener] Mic level: {level_bar} RMS={rms:.0f}  | Say "{wake_word}"          ', end="\r")
 
     # Skip transcription if the clip is too quiet
     if rms < WAKE_SILENCE_THRESH:
@@ -268,10 +249,5 @@ def listen_for_wake_word(wake_word: str, cycle: int = 0) -> bool:
         except OSError:
             pass
 
-    if transcript:
-        print(f"\n[Listener] Heard: '{transcript}'                                    ")
-
     detected = wake_word.lower().strip() in transcript
-    if detected:
-        print(f"[Listener] Wake word '{wake_word}' detected!")
     return detected

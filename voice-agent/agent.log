@@ -1237,3 +1237,59 @@ VAD filter removed 00:02.900 of audio
 [2026-09-18 23:28:36] INTENT=unknown              | PARAMS={}
              TOOL_OUT=(no tool called)                                             | SPOKEN=Could you clarify if you want to open Spotify, search for it on YouTube, or something else?
 
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:03.900
+VAD filter removed 00:02.652 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:03.300
+VAD filter removed 00:01.988 of audio
+Processing audio with duration 00:06.000
+VAD filter removed 00:02.672 of audio
+Processing audio with duration 00:07.500
+VAD filter removed 00:03.436 of audio
+[2026-09-18 23:44:23] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=Could you specify which drive you'd like me to list files from? For example, D, E, or another letter.
+
+Processing audio with duration 00:04.800
+VAD filter removed 00:01.376 of audio
+[DIR] Contents of  D:\  (3 folder(s), 0 file(s))
+----------------------------------------------------
+  [DIR]  $RECYCLE.BIN
+  [DIR]  Clovis
+  [DIR]  System Volume Information
+
+Found 3 folder(s) and 0 file(s) in ''.
+[2026-09-18 23:44:55] INTENT=list_files           | PARAMS={'path': 'D:/'}
+             TOOL_OUT=[DIR] Contents of  D:\  (3 folder(s), 0 file(s))
+----------------------------------------------------
+  [DIR]  $RECYCLE. | SPOKEN=I found 3 folders. $RECYCLE.BIN, Clovis, and System Volume Information.
+
+Processing audio with duration 00:05.400
+VAD filter removed 00:04.280 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:03.900
+VAD filter removed 00:01.564 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:04.500
+VAD filter removed 00:03.348 of audio
+Processing audio with duration 00:07.800
+VAD filter removed 00:02.712 of audio
+Message sent to shivant goyal gtv on WhatsApp.
+[2026-09-18 23:53:01] INTENT=send_whatsapp        | PARAMS={'contact_name': 'shivant goyal gtv', 'message': 'hi!'}
+             TOOL_OUT=Message sent to shivant goyal gtv on WhatsApp.               | SPOKEN=Message sent to Shivant Goyal GTV on WhatsApp.
+
+Processing audio with duration 00:12.900
+VAD filter removed 00:05.316 of audio
+Message sent to Shivansh Goyal GTB on WhatsApp.
+[2026-09-18 23:53:51] INTENT=send_whatsapp        | PARAMS={'contact_name': 'Shivansh Goyal GTB', 'message': 'hi!'}
+             TOOL_OUT=Message sent to Shivansh Goyal GTB on WhatsApp.              | SPOKEN=Message sent to Shivansh Goyal GTB on WhatsApp.
+
+Processing audio with duration 00:03.900
+VAD filter removed 00:02.716 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:03.300
+VAD filter removed 00:02.084 of audio
+Processing audio with duration 00:04.200
+VAD filter removed 00:01.672 of audio
+Processing audio with duration 00:05.100
+VAD filter removed 00:01.516 of audio
