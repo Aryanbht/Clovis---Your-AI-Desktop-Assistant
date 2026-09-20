@@ -10,7 +10,7 @@ The public API is fully synchronous so main.py needs no async boilerplate:
 
     from tts import speak, set_voice
 
-    speak("Hello, Aryan!")
+    speak("Hello, Shivansh!")
     set_voice("en-IN-PrabhatNeural")   # switch to male voice at runtime
 """
 
@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import ui
+from config import TTS_FALLBACK_RATE, TTS_RATE
 
 # ── Default voice configuration ────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ async def _edge_synthesise(text: str, output_path: str) -> None:
     """Async helper: synthesise *text* and write MP3 bytes to *output_path*."""
     import edge_tts  # type: ignore
 
-    communicate = edge_tts.Communicate(text, voice=_current_voice)
+    communicate = edge_tts.Communicate(text, voice=_current_voice, rate=TTS_RATE)
     await communicate.save(output_path)
 
 
@@ -156,25 +157,19 @@ def _play_via_subprocess(path: str) -> None:
     """Use the OS-native command to play *path* synchronously."""
     try:
         if sys.platform == "win32":
-            # PowerShell's MediaPlayer blocks until playback finishes
-            ps_cmd = (
-                f"(New-Object Media.SoundPlayer).Play(); "
-                f"Add-Type -AssemblyName presentationCore; "
-                f"$player = New-Object System.Windows.Media.MediaPlayer; "
-                f"$player.Open([System.Uri]::new('{os.path.abspath(path)}')); "
-                f"$player.Play(); Start-Sleep -Seconds 10"
-            )
-            # Simpler and more reliable: use wmplayer via cmd
+            # Use Windows Media Player COM object which blocks until playback finishes.
+            # WaitForCompletion(1) waits for the media to finish playing.
             subprocess.run(
                 [
                     "powershell", "-NoProfile", "-Command",
-                    f"$p=New-Object System.Windows.Media.MediaPlayer;"
-                    f"$p.Open([uri]'{os.path.abspath(path)}');"
-                    f"$p.Play();"
-                    f"Start-Sleep 30",
+                    f"$p = New-Object -ComObject WScript.Shell; "
+                    f"Add-Type -AssemblyName presentationCore; "
+                    f"$player = New-Object System.Windows.Media.MediaPlayer; "
+                    f"$player.Open([uri]'{os.path.abspath(path)}'); "
+                    f"$player.PlaySync();",
                 ],
                 capture_output=True,
-                timeout=60,
+                timeout=30,
             )
         elif sys.platform == "darwin":
             subprocess.run(["afplay", path], check=True)
@@ -204,8 +199,7 @@ def _speak_pyttsx3(text: str) -> None:
 
         engine = pyttsx3.init()
 
-        # Slightly slower rate sounds more natural for an assistant
-        engine.setProperty("rate",   160)
+        engine.setProperty("rate", TTS_FALLBACK_RATE)
         engine.setProperty("volume", 1.0)
 
         # Prefer a female voice on Windows SAPI if available

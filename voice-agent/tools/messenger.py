@@ -102,28 +102,28 @@ def _send_via_desktop_app(contact_name: str, message: str) -> dict:
     try:
         print(f"[Messenger] WhatsApp desktop app detected — launching …")
         _launch_whatsapp_app()
-        time.sleep(4)          # wait for the app window to appear / come to front
+        time.sleep(5)          # wait for the app window to appear / come to front
 
         # Focus the search bar (Ctrl+F works in the WhatsApp Windows app)
         pyautogui.hotkey("ctrl", "f")
-        time.sleep(0.8)
+        time.sleep(1.0)
 
         # Clear any previous text and type the contact name
         pyautogui.hotkey("ctrl", "a")
         pyperclip.copy(contact_name)
         pyautogui.hotkey("ctrl", "v")
-        time.sleep(2.0)        # let search results populate
+        time.sleep(3.0)        # let search results populate
 
         # Select the first result and open the chat
         pyautogui.press("down")
-        time.sleep(0.4)
+        time.sleep(0.5)
         pyautogui.press("enter")
-        time.sleep(1.2)
+        time.sleep(1.5)
 
         # Type and send the message
         pyperclip.copy(message)
         pyautogui.hotkey("ctrl", "v")
-        time.sleep(0.3)
+        time.sleep(0.5)
         pyautogui.press("enter")
 
         msg = f"Message sent to {contact_name} on WhatsApp."
@@ -141,25 +141,25 @@ def _send_via_web(contact_name: str, message: str) -> dict:
     try:
         print(f"[Messenger] WhatsApp desktop not found — using WhatsApp Web …")
         webbrowser.open("https://web.whatsapp.com")
-        time.sleep(6)          # wait for WhatsApp Web to fully load
+        time.sleep(8)          # wait for WhatsApp Web to fully load
 
         # Focus the search bar (Ctrl+/ is the WhatsApp Web shortcut)
         pyautogui.hotkey("ctrl", "/")
-        time.sleep(0.8)
+        time.sleep(1.0)
 
         pyautogui.hotkey("ctrl", "a")
         pyperclip.copy(contact_name)
         pyautogui.hotkey("ctrl", "v")
-        time.sleep(2.5)
+        time.sleep(3.0)
 
         pyautogui.press("down")
-        time.sleep(0.4)
+        time.sleep(0.5)
         pyautogui.press("enter")
-        time.sleep(1.5)
+        time.sleep(2.0)
 
         pyperclip.copy(message)
         pyautogui.hotkey("ctrl", "v")
-        time.sleep(0.3)
+        time.sleep(0.5)
         pyautogui.press("enter")
 
         msg = f"Message sent to {contact_name} on WhatsApp."

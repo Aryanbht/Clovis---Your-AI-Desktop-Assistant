@@ -122,12 +122,12 @@ def save_cache(app_dict: dict) -> None:
 
 def _resolve_guid_path(app_id: str) -> str:
     """Replace Windows Known-Folder GUIDs in an AppID with real paths."""
+    app_id_lower = app_id.lower()
     for guid, real_path in _GUID_MAP.items():
-        if guid.upper() in app_id.upper():
-            # Case-insensitive replace
-            idx = app_id.upper().find(guid.upper())
+        guid_lower = guid.lower()
+        idx = app_id_lower.find(guid_lower)
+        if idx != -1:
             app_id = app_id[:idx] + real_path + app_id[idx + len(guid):]
-    # Normalize separators
     return app_id.replace("\\\\", "\\")
 
 

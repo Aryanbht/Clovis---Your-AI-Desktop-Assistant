@@ -28,8 +28,7 @@ from typing import TypedDict
 
 import pyautogui
 
-from config import DESKTOP_PATH
-
+from config import DESKTOP_PATH, USERNAME
 
 # ── Return type ────────────────────────────────────────────────────────────────
 
@@ -63,12 +62,12 @@ _PATTERNS: dict[str, re.Pattern] = {
     ),
 
     "clear_memory": re.compile(
-        r"\b(clear\s+memory|forget\s+that|start\s+over)\b"
+        r"\b(clear\s+memory|forget\s+that|start\s+over|reset\s+memory|wipe\s+memory)\b"
     ),
 
     # ── Reminders (Fast Path) ──────────────────────────────────────────────────
     "whats_my_schedule": re.compile(r"\bwhat('s|\s+is)\s+my\s+schedule\b"),
-    "list_reminders": re.compile(r"\b(show\s+(my\s+)?reminders|list\s+reminders|any\s+reminders)\b"),
+    "list_reminders": re.compile(r"\b(show\s+(my\s+)?reminders|list\s+reminders|any\s+reminders|what\s+reminders\s+do\s+i\s+have)\b"),
 
     # ── Quick math ─────────────────────────────────────────────────────────────
     "quick_math": re.compile(
@@ -164,8 +163,91 @@ _PATTERNS: dict[str, re.Pattern] = {
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 2.  HELPER UTILITIES
+# 1b. TRANSCRIPT PREPROCESSING
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _normalize_transcript(text: str) -> str:
+    """
+    Normalize speech transcript for better pattern matching.
+    Handles common speech recognition artifacts and natural language variations.
+    """
+    import re
+    text = text.lower().strip()
+    
+    # Remove filler words and speech artifacts
+    fillers = [
+        r"\bum+\b", r"\buh+\b", r"\ber+\b", r"\blike+\b", r"\byou\s+know\b",
+        r"\bkind\s+of\b", r"\bsort\s+of\b", r"\bactually\b", r"\bbasically\b",
+        r"\bliterally\b", r"\bseriously\b", r"\bhonestly\b", r"\bfrankly\b",
+    ]
+    for filler in fillers:
+        text = re.sub(filler, " ", text)
+    
+    # Normalize contractions and common speech patterns
+    contractions = {
+        r"\bwhats\b": "what is",
+        r"\bwhats\s+up\b": "what is up",
+        r"\bhows\b": "how is",
+        r"\bwhens\b": "when is",
+        r"\bwheres\b": "where is",
+        r"\bwhos\b": "who is",
+        r"\bwhys\b": "why is",
+        r"\blets\b": "let us",
+        r"\bgonna\b": "going to",
+        r"\bwanna\b": "want to",
+        r"\bgotta\b": "got to",
+        r"\bhafta\b": "have to",
+        r"\boutta\b": "out of",
+        r"\bkinda\b": "kind of",
+        r"\bsorta\b": "sort of",
+        r"\bwoulda\b": "would have",
+        r"\bcoulda\b": "could have",
+        r"\bshoulda\b": "should have",
+        r"\bmighta\b": "might have",
+        r"\bmusta\b": "must have",
+    }
+    for pattern, replacement in contractions.items():
+        text = re.sub(pattern, replacement, text)
+    
+    # Normalize number words to digits for math
+    number_words = {
+        "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+        "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
+        "ten": "10", "eleven": "11", "twelve": "12", "thirteen": "13",
+        "fourteen": "14", "fifteen": "15", "sixteen": "16", "seventeen": "17",
+        "eighteen": "18", "nineteen": "19", "twenty": "20", "thirty": "30",
+        "forty": "40", "fifty": "50", "sixty": "60", "seventy": "70",
+        "eighty": "80", "ninety": "90", "hundred": "100", "thousand": "1000",
+    }
+    for word, digit in number_words.items():
+        text = re.sub(rf"\b{word}\b", digit, text)
+    
+    # Normalize common command variations
+    command_normalizations = {
+        r"\bkilling\s+the\s+volume\b": "mute",
+        r"\bcrank\s+(?:it\s+)?up\b": "volume up",
+        r"\bturn\s+it\s+up\b": "volume up",
+        r"\bcrank\s+(?:it\s+)?down\b": "volume down",
+        r"\bturn\s+it\s+down\b": "volume down",
+        r"\bkill\s+(?:the\s+)?sound\b": "mute",
+        r"\bshut\s+up\b": "mute",
+        r"\bmute\s+(?:the\s+)?volume\b": "mute",
+        r"\bunmute\s+(?:the\s+)?volume\b": "unmute",
+        r"\bturn\s+off\s+(?:the\s+)?sound\b": "mute",
+        r"\bturn\s+on\s+(?:the\s+)?sound\b": "unmute",
+    }
+    for pattern, replacement in command_normalizations.items():
+        text = re.sub(pattern, replacement, text)
+    
+    # Normalize whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+    
+    return text
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 2.  HELPER UTILITIES
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def get_time_of_day() -> str:
     """Return 'morning', 'afternoon', or 'evening' based on the current hour."""
@@ -512,7 +594,7 @@ def fast_route(transcript: str) -> RouteResult | None:
     or ``None`` to signal that the caller should use the LLM path.
     """
     import string
-    lower = transcript.lower().strip().strip(string.punctuation)
+    lower = _normalize_transcript(transcript)
 
     private_search_result = _handle_search_incognito(lower)
     if private_search_result is not None:
@@ -579,7 +661,7 @@ def handle_fast_intent(intent: str, transcript: str) -> RouteResult:
 
 def _handle_greet(transcript: str) -> tuple[str, None]:
     tod = get_time_of_day()
-    return f"Hey Aryan, good {tod}. What do you need?", None
+    return f"Hey {USERNAME.split()[0]}, good {tod}. What do you need?", None
 
 
 def _handle_tell_time(transcript: str) -> tuple[str, None]:
@@ -643,7 +725,6 @@ def _handle_mute(transcript: str) -> tuple[str, str]:
 
 def _handle_screenshot(transcript: str) -> tuple[str, str]:
     import time
-    from config import DESKTOP_PATH
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = os.path.join(DESKTOP_PATH, f"screenshot_{timestamp}.png")
@@ -702,7 +783,7 @@ def _handle_send_whatsapp(transcript: str) -> tuple[str, str | None]:
 
 
 def _handle_acknowledge(_transcript: str) -> tuple[str, None]:
-    return "Anytime Aryan.", None
+    return f"Anytime, {USERNAME.split()[0]}.", None
 
 
 def _handle_clear_memory(_transcript: str) -> tuple[str, str]:

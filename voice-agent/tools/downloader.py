@@ -13,6 +13,7 @@ import requests
 from tqdm import tqdm
 
 from config import DOWNLOADS_PATH
+from tools.file_ops import _human_size
 
 
 def download_file(url: str, destination: str = DOWNLOADS_PATH) -> dict:
@@ -98,15 +99,6 @@ def _filename_from_url(url: str) -> str:
     Falls back to 'download' if nothing useful can be extracted.
     """
     parsed   = urlparse(url)
-    raw_name = Path(parsed.path).name          # last path segment
-    name     = unquote(raw_name).split("?")[0] # strip query string artifacts
+    raw_name = Path(parsed.path).name
+    name     = unquote(raw_name).split("?")[0]
     return name if name else "download"
-
-
-def _human_size(n_bytes: int) -> str:
-    """Convert a byte count to a human-readable string (e.g. '2.1 MB')."""
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if n_bytes < 1024:
-            return f"{n_bytes:.1f} {unit}"
-        n_bytes /= 1024
-    return f"{n_bytes:.1f} PB"

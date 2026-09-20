@@ -13,14 +13,24 @@ Every dispatch is appended to agent.log with a timestamp.
 
 from __future__ import annotations
 
+import importlib
 import logging
 
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from tools import browser, downloader, file_ops, gmail, messenger, system_ops, reminder
 import ui
+
+
+_lazy_modules: dict[str, Any] = {}
+
+
+def _tool(module_name: str) -> Any:
+    """Lazy-import a tool module on first use, cache for subsequent calls."""
+    if module_name not in _lazy_modules:
+        _lazy_modules[module_name] = importlib.import_module(f"tools.{module_name}")
+    return _lazy_modules[module_name]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -55,47 +65,47 @@ def _log_event(intent: str, params: dict, tool_output: str, response: str) -> No
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Each value is a callable that accepts **params from the brain result.
-# Using lambdas keeps the mapping readable without wrapper functions.
+# Tool modules are lazily imported on first dispatch to keep startup fast.
 
 _INTENT_MAP: dict[str, Callable[..., str]] = {
     # ── File operations ────────────────────────────────────────────────────────
-    "create_folder": file_ops.create_folder,
-    "create_file":   file_ops.create_file,
-    "list_files":    file_ops.list_files,
-    "delete_file":   file_ops.delete_file,
-    "delete_folder": file_ops.delete_file,
-    "move_file":     file_ops.move_file,
+    "create_folder": lambda **p: _tool("file_ops").create_folder(**p),
+    "create_file":   lambda **p: _tool("file_ops").create_file(**p),
+    "list_files":    lambda **p: _tool("file_ops").list_files(**p),
+    "delete_file":   lambda **p: _tool("file_ops").delete_file(**p),
+    "delete_folder": lambda **p: _tool("file_ops").delete_file(**p),
+    "move_file":     lambda **p: _tool("file_ops").move_file(**p),
 
     # ── Downloader ─────────────────────────────────────────────────────────────
-    "download_file": downloader.download_file,
+    "download_file": lambda **p: _tool("downloader").download_file(**p),
 
     # ── Browser ────────────────────────────────────────────────────────────────
-    "open_url":      browser.open_url,
-    "search_web":    browser.search_web,
+    "open_url":      lambda **p: _tool("browser").open_url(**p),
+    "search_web":    lambda **p: _tool("browser").search_web(**p),
 
     # ── Gmail ──────────────────────────────────────────────────────────────────
-    "open_gmail":    gmail.open_gmail,
-    "compose_email": gmail.compose_email,
+    "open_gmail":    lambda **p: _tool("gmail").open_gmail(**p),
+    "compose_email": lambda **p: _tool("gmail").compose_email(**p),
 
-    # ── Messenger ───────────────────────────────────────────────
-    "send_whatsapp":  messenger.send_whatsapp,
-    "open_telegram":  messenger.open_telegram,
-    "open_whatsapp":  lambda **_: system_ops.open_app("whatsapp"),
+    # ── Messenger ──────────────────────────────────────────────────────────────
+    "send_whatsapp": lambda **p: _tool("messenger").send_whatsapp(**p),
+    "open_telegram": lambda **p: _tool("messenger").open_telegram(**p),
+    "open_whatsapp": lambda **_: _tool("system_ops").open_app("whatsapp"),
 
     # ── System (fast-path actions also route here) ─────────────────────────────
-    "screenshot":         system_ops.take_screenshot,
-    "folder_screenshot":  system_ops.folder_screenshot,
-    "lock_screen":        system_ops.lock_screen,
-    "open_app":           system_ops.open_app,
-    "tell_time":          lambda **_: system_ops.tell_time(),
-    "tell_date":          lambda **_: system_ops.tell_date(),
+    "screenshot":         lambda **p: _tool("system_ops").take_screenshot(**p),
+    "folder_screenshot":  lambda **p: _tool("system_ops").folder_screenshot(**p),
+    "lock_screen":        lambda **p: _tool("system_ops").lock_screen(**p),
+    "open_app":           lambda **p: _tool("system_ops").open_app(**p),
+    "tell_time":          lambda **_: _tool("system_ops").tell_time(),
+    "tell_date":          lambda **_: _tool("system_ops").tell_date(),
 
     # ── Reminders ──────────────────────────────────────────────────────────────
-    "set_reminder":      reminder.set_reminder,
-    "cancel_reminder":   reminder.cancel_reminder,
-    "list_reminders":    lambda **_: reminder.list_reminders(),
-    "whats_my_schedule": lambda **_: reminder.get_todays_schedule(),
-    "snooze_reminder":   reminder.snooze_reminder,
+    "set_reminder":      lambda **p: _tool("reminder").set_reminder(**p),
+    "cancel_reminder":   lambda **p: _tool("reminder").cancel_reminder(**p),
+    "list_reminders":    lambda **_: _tool("reminder").list_reminders(),
+    "whats_my_schedule": lambda **_: _tool("reminder").get_todays_schedule(),
+    "snooze_reminder":   lambda **p: _tool("reminder").snooze_reminder(**p),
 }
 
 
@@ -177,8 +187,6 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
         spoken = tool_output_display
         ui.show_error(tool_output_display)
 
-    _first_line = tool_output_display.split("\n")[0][:120]
-
     # ── For data intents, the tool output IS the answer ────────────────────────
     # The LLM generates a vague summary before the tool runs, so it can't know
     # the actual content. For listing operations, print and return the real data.
@@ -194,15 +202,3 @@ def dispatch(result: dict[str, Any], original_text: str = "") -> str:
     # ── Log and return ─────────────────────────────────────────────────────────
     _log_event(intent, params, tool_output=tool_output_display, response=response)
     return response
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Internal helpers
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _fmt_params(params: dict) -> str:
-    """Format *params* as a compact kwarg-style string for console output."""
-    if not params:
-        return ""
-    parts = [f"{k}={v!r}" for k, v in params.items()]
-    return ", ".join(parts)

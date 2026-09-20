@@ -83,8 +83,9 @@ Register-ScheduledTask -TaskName "{task_name}" -Action $Action -Trigger $Trigger
     subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], capture_output=True)
     
     time_str = dt.strftime("%I:%M %p").lstrip("0")
-    if dt.date() > datetime.now().date():
-        day_str = "tomorrow at" if (dt.date() - datetime.now().date()).days == 1 else "on " + dt.strftime("%A at")
+    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+    if dt.date() > now.date():
+        day_str = "tomorrow at" if (dt.date() - now.date()).days == 1 else "on " + dt.strftime("%A at")
         msg = f"Reminder set. I will remind you to {message} {day_str} {time_str}."
     else:
         msg = f"Reminder set. I will remind you to {message} today at {time_str}."
@@ -118,8 +119,9 @@ def list_reminders() -> dict:
     
     for i, r in enumerate(pending):
         dt = datetime.fromisoformat(r["fire_at"])
+        now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
         time_str = dt.strftime("%I:%M %p").lstrip("0")
-        day_str = "today" if dt.date() == datetime.now().date() else dt.strftime("%A")
+        day_str = "today" if dt.date() == now.date() else dt.strftime("%A")
         
         speak_parts.append(f"Number {i+1}: {r['message']}, {day_str} at {time_str}.")
         display_parts.append(f"{i+1}. {r['message']} ({day_str} at {time_str})")
@@ -133,7 +135,8 @@ def snooze_reminder(reminder_id: str, minutes: int = 10) -> dict:
             # cancel existing
             subprocess.run(["powershell", "-NoProfile", "-Command", f'Unregister-ScheduledTask -TaskName "{r["task_name"]}" -Confirm:$false'], capture_output=True)
             
-            new_dt = datetime.now() + timedelta(minutes=minutes)
+            orig_dt = datetime.fromisoformat(r["fire_at"])
+            new_dt = datetime.now(orig_dt.tzinfo) + timedelta(minutes=minutes)
             r["fire_at"] = new_dt.isoformat()
             r["status"] = "pending"
             iso_dt = new_dt.isoformat()
@@ -160,13 +163,13 @@ Register-ScheduledTask -TaskName "{r["task_name"]}" -Action $Action -Trigger $Tr
 
 def get_todays_schedule() -> dict:
     data = _load_reminders()
-    today_date = datetime.now().date()
     todays = []
-    
+
     for r in data["reminders"]:
         if r["status"] == "pending":
             dt = datetime.fromisoformat(r["fire_at"])
-            if dt.date() == today_date or r.get("repeat") == "daily":
+            now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+            if dt.date() == now.date() or r.get("repeat") == "daily":
                 todays.append(r)
                 
     if not todays:
@@ -175,7 +178,7 @@ def get_todays_schedule() -> dict:
     speak_parts = ["Here is your schedule for today."]
     display_parts = ["Today's Schedule:"]
     
-    for r in sorted(todays, key=lambda x: datetime.fromisoformat(x["fire_at"]).time()):
+    for r in sorted(todays, key=lambda x: datetime.fromisoformat(x["fire_at"])):
         dt = datetime.fromisoformat(x["fire_at"])
         time_str = dt.strftime("%I:%M %p").lstrip("0")
         speak_parts.append(f"At {time_str}, {r['message']}.")

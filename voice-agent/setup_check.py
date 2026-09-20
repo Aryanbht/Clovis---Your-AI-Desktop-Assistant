@@ -19,6 +19,11 @@ import shutil
 import socket
 import sys
 
+# Ensure UTF-8 output so Unicode box-drawing characters render correctly
+# even when PYTHONIOENCODING is not set by the user.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # ── Formatting helpers ─────────────────────────────────────────────────────────
 
 OK   = "  [OK]  "
@@ -86,12 +91,13 @@ def check_packages() -> None:
         "edge_tts":       "edge-tts",
         "pyautogui":      "pyautogui",
         "tqdm":           "tqdm",
-        "ollama":         "ollama",
     }
     optional = {
-        "playsound": "playsound",
-        "pycaw":     "pycaw (volume control)",
-        "win32api":  "pywin32 (required by pycaw)",
+        "ollama":        "ollama (Python client, optional)",
+        "playsound":     "playsound",
+        "pycaw":         "pycaw (volume control)",
+        "win32api":      "pywin32 (required by pycaw)",
+        "pyperclip":     "pyperclip (WhatsApp messaging)",
     }
 
     for module, label in required.items():

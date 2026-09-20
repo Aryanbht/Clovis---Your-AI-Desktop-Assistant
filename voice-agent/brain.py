@@ -15,13 +15,14 @@ from __future__ import annotations
 import json
 import re
 import socket
+import threading
 import urllib.parse
 from pathlib import Path
 from typing import TypedDict
 
 import requests
 
-from config import OLLAMA_MODEL, OLLAMA_URL
+from config import OLLAMA_MODEL, OLLAMA_URL, USERNAME
 import ui
 
 
@@ -36,7 +37,7 @@ class LLMResult(TypedDict):
 # ── Constants ──────────────────────────────────────────────────────────────────
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent / "prompts" / "system_prompt.txt"
-_OLLAMA_TIMEOUT     = 60   # seconds before giving up on a generation request
+_OLLAMA_TIMEOUT     = 90   # seconds before giving up on a generation request
 _HEALTH_TIMEOUT     = 3    # seconds for the ping check
 
 _FALLBACK: LLMResult = {
@@ -48,11 +49,19 @@ _FALLBACK: LLMResult = {
 # ── State ──────────────────────────────────────────────────────────────────────
 
 conversation_history: list[dict[str, str]] = []
+_history_lock = threading.Lock()
 
 def clear_memory() -> None:
     """Clear the short-term conversation history."""
-    global conversation_history
-    conversation_history.clear()
+    with _history_lock:
+        conversation_history.clear()
+
+
+def add_to_history(user: str, assistant: str) -> None:
+    """Append a conversation turn and trim to the last 3 entries."""
+    with _history_lock:
+        conversation_history.append({"user": user, "assistant": assistant})
+        del conversation_history[:-3]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -72,6 +81,7 @@ def _load_system_prompt() -> str:
         text = text.replace("<DESKTOP_PATH>", DESKTOP_PATH.replace("\\", "/"))
         text = text.replace("<DOWNLOADS_PATH>", DOWNLOADS_PATH.replace("\\", "/"))
         text = text.replace("<DOCUMENTS_PATH>", DOCUMENTS_PATH.replace("\\", "/"))
+        text = text.replace("<USERNAME>", USERNAME)
         
         if text:
             return text
@@ -90,14 +100,19 @@ def _load_system_prompt() -> str:
 
 def _build_prompt(system_prompt: str, transcript: str) -> str:
     """Combine system prompt, history context, and user transcript into a single prompt string."""
+    with _history_lock:
+        history = list(conversation_history[-3:])
+
     # If there is no history, just return the system prompt and the current user command
-    if not conversation_history:
+    if not history:
         return f"{system_prompt}\n\nUser: {transcript}"
         
     # Build the context string from the last 3 turns
     context_str = "Recent context:\n"
-    for turn in conversation_history:
-        context_str += f"User: {turn['user']}\nAssistant: {turn['assistant']}\n\n"
+    for turn in history:
+        user = turn["user"][:400]
+        assistant = turn["assistant"][:400]
+        context_str += f"User: {user}\nAssistant: {assistant}\n\n"
         
     # Inject this context between the system prompt and the current user command
     return f"{system_prompt}\n\n{context_str}User: {transcript}"
@@ -160,7 +175,15 @@ def _extract_json(raw: str) -> LLMResult:
         data = json.loads(json_str)
     except json.JSONDecodeError as exc:
         ui.console.print(f"[dim yellow][Brain] JSON decode error: {exc}[/dim yellow]")
-        return dict(_FALLBACK)
+        ui.console.print(f"[dim yellow][Brain] Raw JSON attempt: {json_str[:200]}[/dim yellow]")
+        # The LLM tried to produce JSON but it's malformed. Instead of failing,
+        # treat the entire raw response as a conversational reply so the user
+        # still gets a meaningful answer.
+        return {
+            "intent": "unknown",
+            "params": {},
+            "response": raw.strip()
+        }
 
     # Normalise keys — handle both schemas the LLM might return:
     #   Expected:  {"intent":..., "params":..., "response":...}
@@ -237,13 +260,9 @@ def query(transcript: str) -> LLMResult:
     system_prompt = _load_system_prompt()
     full_prompt   = _build_prompt(system_prompt, transcript)
     result = _query_with_prompt(full_prompt)
-    
-    # After getting a response, append the interaction to conversation_history
-    conversation_history.append({"user": transcript, "assistant": result["response"]})
-    # Keep only the last 3 turns (pop the oldest when length exceeds 3)
-    if len(conversation_history) > 3:
-        conversation_history.pop(0)
-        
+
+    add_to_history(transcript, result["response"])
+
     return result
 
 
@@ -272,6 +291,13 @@ def _query_with_prompt(full_prompt: str) -> LLMResult:
         "model":  OLLAMA_MODEL,
         "prompt": full_prompt,
         "stream": False,
+        "options": {
+            "temperature": 0.1,
+            "top_p": 0.9,
+            "repeat_penalty": 1.1,
+            "num_ctx": 2048,
+            "num_predict": 256,
+        },
     }
 
     try:

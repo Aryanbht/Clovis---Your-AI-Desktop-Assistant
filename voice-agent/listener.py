@@ -19,10 +19,7 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 import numpy as np
 import sounddevice as sd
-from scipy.io.wavfile import write as wav_write
-from faster_whisper import WhisperModel
-
-from config import WHISPER_MODEL_SIZE
+from config import WHISPER_BEAM_SIZE, WHISPER_INITIAL_PROMPT, WHISPER_MODEL_SIZE
 
 
 # ── Audio constants ────────────────────────────────────────────────────────────
@@ -34,7 +31,7 @@ DTYPE           = "int16"  # 16-bit PCM; matches scipy WAV output
 CHUNK_DURATION  = 0.3      # seconds per recording chunk
 CHUNK_SAMPLES   = int(SAMPLE_RATE * CHUNK_DURATION)
 
-SILENCE_THRESH      = 200    # RMS below this → silence during command recording
+SILENCE_THRESH      = 120    # Low enough for quieter / accented speech; adapted to room noise below.
 WAKE_SILENCE_THRESH = 80     # lower bar for wake-word clips (mic gain varies)
 SILENCE_TIMEOUT     = 1.5   # seconds of continuous silence → stop recording
 MAX_RECORD_SEC      = 15.0  # hard ceiling to prevent runaway recording
@@ -44,7 +41,8 @@ WAKE_CLIP_SEC   = 2.0      # duration of the short clip for wake-word detection
 
 # ── Whisper model (loaded once, module-level) ──────────────────────────────────
 
-def _load_model() -> WhisperModel:
+def _load_model() -> "WhisperModel":
+    from faster_whisper import WhisperModel
     model = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="int8")
     return model
 
@@ -76,7 +74,31 @@ def _rms(chunk: np.ndarray) -> float:
 
 def _save_wav(audio: np.ndarray, path: str) -> None:
     """Write *audio* (int16, mono) to a WAV file at *path*."""
+    from scipy.io.wavfile import write as wav_write
     wav_write(path, SAMPLE_RATE, audio)
+
+
+def _denoise_and_normalise(audio: np.ndarray) -> np.ndarray:
+    """Suppress low-frequency room noise and normalise a recorded utterance.
+
+    This is deliberately lightweight: it runs once per utterance and adds no
+    model dependency or startup cost. Whisper's own VAD handles residual noise.
+    """
+    if audio.size < 32:
+        return audio
+
+    samples = audio.astype(np.float32) / np.iinfo(np.int16).max
+    try:
+        from scipy.signal import butter, sosfiltfilt
+        high_pass = butter(4, 80, btype="highpass", fs=SAMPLE_RATE, output="sos")
+        samples = sosfiltfilt(high_pass, samples)
+    except ValueError:
+        pass
+
+    peak = float(np.max(np.abs(samples)))
+    if peak > 0.01:
+        samples *= min(0.92 / peak, 4.0)
+    return np.clip(samples * np.iinfo(np.int16).max, -32768, 32767).astype(np.int16)
 
 
 def _transcribe_file(wav_path: str) -> str:
@@ -90,14 +112,19 @@ def _transcribe_file(wav_path: str) -> str:
     segments, info = model.transcribe(
         wav_path,
         language="en",
-        beam_size=5,
+        beam_size=WHISPER_BEAM_SIZE,
+        best_of=5,
+        temperature=0.0,
+        condition_on_previous_text=False,
+        initial_prompt=WHISPER_INITIAL_PROMPT,
         vad_filter=True,           # built-in VAD skips non-speech regions
         vad_parameters={
             "min_silence_duration_ms": 300,
         },
     )
     text = " ".join(seg.text for seg in segments).strip().lower()
-    return text
+    # Normalise whitespace and common transcription punctuation before routing.
+    return " ".join(text.replace("’", "'").split())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -127,6 +154,7 @@ def listen() -> str:
     silent_duration  = 0.0
     total_duration   = 0.0
     speech_started   = False   # True once the user has begun speaking
+    noise_samples: list[float] = []
 
     try:
         with sd.InputStream(
@@ -144,7 +172,12 @@ def listen() -> str:
                 chunks.append(chunk)
                 total_duration += CHUNK_DURATION
 
-                chunk_loud = _rms(chunk) >= SILENCE_THRESH
+                rms = _rms(chunk)
+                if not speech_started and len(noise_samples) < 3:
+                    noise_samples.append(rms)
+                room_noise = sum(noise_samples) / len(noise_samples) if noise_samples else 0.0
+                dynamic_threshold = max(SILENCE_THRESH, min(350.0, room_noise * 2.2))
+                chunk_loud = rms >= dynamic_threshold
 
                 if not speech_started:
                     if chunk_loud:
@@ -172,7 +205,7 @@ def listen() -> str:
     if not chunks or not speech_started:
         return ""
 
-    audio = np.concatenate(chunks)
+    audio = _denoise_and_normalise(np.concatenate(chunks))
 
     # Write to a temp WAV, transcribe, then clean up
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".wav", prefix="va_listen_")
@@ -241,7 +274,7 @@ def listen_for_wake_word(wake_word: str, cycle: int = 0) -> bool:
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".wav", prefix="va_wake_")
     os.close(tmp_fd)
     try:
-        _save_wav(audio, tmp_path)
+        _save_wav(_denoise_and_normalise(audio), tmp_path)
         transcript = _transcribe_file(tmp_path)
     finally:
         try:

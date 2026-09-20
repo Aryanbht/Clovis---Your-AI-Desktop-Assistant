@@ -425,7 +425,7 @@ def _resolve_file_path(path: str) -> str:
       1. If the exact path exists, use it.
       2. Try _resolve_any on the parent folder.
       3. If the parent still doesn't exist, scan all path components for a
-         non-standard name (e.g. 'aryankejalwe') and use system search to
+         non-standard name (e.g. 'projectnotes') and use system search to
          find that folder, then put the file there.
     """
     p        = Path(_resolve_path(path))
@@ -446,11 +446,8 @@ def _resolve_file_path(path: str) -> str:
         part for part in p.parts
         if part.lower().rstrip("\\/") not in _STANDARD_PATH_PARTS
         and len(part) > 2
-        and ":" not in part          # skip drive letters
+        and ":" not in part
     ]
-    # Do not search all of OneDrive or every drive while creating a file.
-    # A guessed path must fail safely rather than selecting an unrelated folder.
-    meaningful = []
     for part in reversed(meaningful):
         found = _search_system_for_folder(part)
         if found and Path(found).exists():

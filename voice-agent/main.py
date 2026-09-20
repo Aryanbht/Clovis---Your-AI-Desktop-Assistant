@@ -26,9 +26,11 @@ from __future__ import annotations
 
 import argparse
 import os
+import queue
 import sys
-from pathlib import Path
+import threading
 import time
+from pathlib import Path
 
 import brain
 import config
@@ -52,16 +54,17 @@ def _startup_checks(mode: str) -> None:
     if mode == "text":
         ui.console.print("[dim cyan]Text mode -- type your commands below.[/dim cyan]\n")
         tts.speak("Clovis online. Text mode active.")
-    elif mode == "hybrid":
-        ui.console.print("[dim cyan]Hybrid mode -- press Enter to type or say nothing to use voice.[/dim cyan]\n")
-        tts.speak("Clovis online. Hybrid mode active.")
-        # Pre-load Whisper so it's ready when the user presses Enter
-        listener.preload_model()
     else:
-        ui.console.print(f"[dim cyan]Say '{config.WAKE_WORD.capitalize()}' to activate.[/dim cyan]\n")
-        # Pre-load Whisper NOW so model-load messages appear before the mic bar
-        listener.preload_model()
-        tts.speak("Clovis online. Waiting for wake word.")
+        # Pre-load Whisper in a background thread so startup isn't blocked
+        # by the model download/initialization (~5s). The user can interact
+        # while it loads; transcription is deferred if it isn't ready yet.
+        threading.Thread(target=listener.preload_model, daemon=True).start()
+        if mode == "hybrid":
+            ui.console.print("[dim cyan]Hybrid mode -- press Enter to type or say nothing to use voice.[/dim cyan]\n")
+            tts.speak("Clovis online. Hybrid mode active.")
+        else:
+            ui.console.print(f"[dim cyan]Say '{config.WAKE_WORD.capitalize()}' to activate.[/dim cyan]\n")
+            tts.speak("Clovis online. Waiting for wake word.")
 
 
 
@@ -107,8 +110,41 @@ def _input_hybrid() -> str:
 # ==============================================================================
 # Core command handler  (shared by all modes)
 # ==============================================================================
-
 _last_command_time = time.time()
+
+
+class _BackgroundLLM:
+    """Serialise slow LLM calls without blocking microphone command capture."""
+
+    def __init__(self) -> None:
+        self._jobs = queue.Queue()
+        self._results = queue.Queue()
+        self._thread = threading.Thread(target=self._run, name="clovis-llm", daemon=True)
+        self._thread.start()
+
+    def submit(self, transcript: str) -> int:
+        self._jobs.put(transcript)
+        return max(1, self._jobs.unfinished_tasks)
+
+    def drain(self) -> list[tuple[str, dict]]:
+        completed: list[tuple[str, dict]] = []
+        while True:
+            try:
+                completed.append(self._results.get_nowait())
+            except queue.Empty:
+                return completed
+
+    def _run(self) -> None:
+        while True:
+            transcript = self._jobs.get()
+            try:
+                self._results.put((transcript, brain.query(transcript)))
+            finally:
+                self._jobs.task_done()
+
+
+_llm_worker = _BackgroundLLM()
+
 
 def _process(transcript: str) -> bool:
     """
@@ -121,7 +157,7 @@ def _process(transcript: str) -> bool:
         True otherwise.
     """
     global _last_command_time
-    
+
     current_time = time.time()
     if current_time - _last_command_time > 300:  # 5 minutes
         ui.console.print("[dim yellow]5 minutes of inactivity. Clearing session memory.[/dim yellow]")
@@ -132,53 +168,54 @@ def _process(transcript: str) -> bool:
         return True
 
     ui.console.print(f"[dim cyan]You said:[/dim cyan] [white]'{transcript}'[/white]")
-    
-    import random
-    import threading
 
     # -- FAST PATH -------------------------------------------------------------
     fast_result = router.fast_route(transcript)
 
     if fast_result is not None:
-        tts.speak(random.choice(["On it.", "Sure."]))
-        
         response = fast_result.get("response", "")
-        action   = fast_result.get("action")
+        action = fast_result.get("action")
 
         ui.log_intent("FAST", str(action), {"input": transcript})
 
-        _respond(response)
-
         if action == "farewell":
+            _respond(response)
             return False   # signal caller to stop looping
 
+        _respond(response)
         return True
 
     # -- LLM PATH --------------------------------------------------------------
-    tts.speak(random.choice(["Let me check.", "One moment."]))
-
-    llm_done = threading.Event()
-    def _timeout_speaker():
-        if not llm_done.wait(4.0):
-            tts.speak("Still working on it...")
-            
-    t = threading.Thread(target=_timeout_speaker)
-    t.daemon = True
-    t.start()
-
-    ui.show_thinking()
-    llm_result = brain.query(transcript)
-    ui.stop_thinking()
-    
-    llm_done.set()
-
-    if not llm_result:
-        _respond("Sorry, I didn't get a response from the language model.")
-        return True
-
-    spoken_response = dispatcher.dispatch(llm_result, original_text=transcript)
-    _respond(spoken_response)
+    # Submit to background worker for non-blocking LLM inference
+    position = _llm_worker.submit(transcript)
+    status = "Thinking..." if position == 1 else f"Queued ({position} waiting)"
+    ui.show_thinking(status)
     return True
+
+
+def _drain_background_results() -> bool:
+    """Execute completed LLM intents on the foreground thread and speak once.
+
+    Returns ``False`` if a farewell intent was detected (signal to exit the
+    loop), ``True`` otherwise.  Also stops the thinking spinner.
+    """
+    ui.stop_thinking()
+
+    keep_going = True
+    for original_text, llm_result in _llm_worker.drain():
+        if not llm_result:
+            _respond("I couldn't complete that request.")
+            continue
+
+        intent = str(llm_result.get("intent", "")).strip().lower()
+        if intent == "farewell":
+            _respond(llm_result.get("response", "Goodbye."))
+            keep_going = False
+            break
+
+        _respond(dispatcher.dispatch(llm_result, original_text=original_text))
+
+    return keep_going
 
 
 def _respond(text: str) -> None:
@@ -212,7 +249,7 @@ def _wake_word_loop() -> None:
             if detected:
                 break
 
-        # ── ACTIVE PHASE: keep listening until 5 min of inactivity ───────────
+# ── ACTIVE PHASE: keep listening until 5 min of inactivity ───────────
         ui.console.print("\n[bright_green]Active! Listening for your command.[/bright_green]")
         ui.console.print(f"[dim](I'll go back to sleep after {SLEEP_TIMEOUT // 60} min of silence.)[/dim]\n")
         tts.speak("Yes?")
@@ -243,6 +280,10 @@ def _wake_word_loop() -> None:
             if not keep_going:
                 return   # farewell command -- exit completely
 
+            # Drain any completed background LLM tasks
+            if not _drain_background_results():
+                return   # LLM detected a farewell
+
             # After responding, immediately listen for the next command
             ui.console.print("\n[dim cyan]Ready for next command (or stay quiet for 5 min to sleep).[/dim cyan]")
 
@@ -252,22 +293,30 @@ def _no_wake_word_loop() -> None:
     """Voice command -> process -> repeat (no wake word needed)."""
     tts.speak("Direct voice mode. Listening now.")
     while True:
+        if not _drain_background_results():
+            break
         ui.console.print("\n[dim cyan]Listening for command...[/dim cyan]")
         transcript = _input_voice()
         keep_going = _process(transcript)
         if not keep_going:
             break
+        if not _drain_background_results():
+            break
 
 
 def _text_loop() -> None:
     """Text command -> process -> repeat."""
-    ui.console.print("[dim cyan]Type your command and press Enter. Type 'bye' to exit.[/dim cyan]\n")
+    ui.console.print("[dim cyan]Type your command and press Enter. Type 'exit' or 'bye' to close Clovis.[/dim cyan]\n")
     while True:
+        if not _drain_background_results():
+            break
         transcript = _input_text("You: ")
         if not transcript:
             continue
         keep_going = _process(transcript)
         if not keep_going:
+            break
+        if not _drain_background_results():
             break
 
 
@@ -275,11 +324,15 @@ def _hybrid_loop() -> None:
     """Each turn: type a command OR press Enter to speak."""
     ui.console.print("[dim cyan]Press Enter to speak, or type a command directly.[/dim cyan]\n")
     while True:
+        if not _drain_background_results():
+            break
         transcript = _input_hybrid()
         if not transcript:
             continue
         keep_going = _process(transcript)
         if not keep_going:
+            break
+        if not _drain_background_results():
             break
 
 
@@ -370,18 +423,18 @@ def main() -> None:
 
     except KeyboardInterrupt:
         ui.console.print("\n[dim yellow]Shutting down...[/dim yellow]")
-        tts.speak(f"Shutting down. Goodbye {config.USERNAME}.")
+        # Skip TTS on Ctrl-C: the asyncio loop is already interrupted,
+        # and calling tts.speak() here re-enters asyncio.run() which
+        # crashes with CancelledError.
         ui.show_farewell()
-        if lock_file.exists():
-            lock_file.unlink()
-        sys.exit(0)
-
     except Exception as exc:
         ui.show_error(f"Unexpected error: {exc}")
-        tts.speak("An unexpected error occurred. Restarting.")
+        tts.speak("An unexpected error occurred. Closing Clovis.")
+    else:
+        ui.show_farewell()
+    finally:
         if lock_file.exists():
             lock_file.unlink()
-        main()
 
 
 if __name__ == "__main__":

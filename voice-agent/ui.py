@@ -1,5 +1,5 @@
-import time
 from datetime import datetime
+from config import USERNAME
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -14,16 +14,24 @@ from rich.style import Style
 console = Console()
 
 def show_banner():
-    ascii_art = """
-  ██████╗ ██╗      ██████╗ ██╗   ██╗ ██╗ ███████╗
- ██╔════╝ ██║     ██╔═══██╗██║   ██║ ██║ ██╔════╝
- ██║      ██║     ██║   ██║╚██╗ ██╔╝ ██║ ███████╗
- ██║      ██║     ██║   ██║ ╚████╔╝  ██║ ╚════██║
- ╚██████╗ ███████╗╚██████╔╝  ╚██╔╝   ██║ ███████║
-  ╚═════╝ ╚══════╝ ╚═════╝    ╚═╝    ╚═╝ ╚══════╝
-                                                 
-           Your AI Desktop Assistant             
-                v1.0.0 · Offline                 
+    ascii_art = r"""
+  ╔════════════════════════════════════════════════════════════════════════════╗
+  ║  ██████╗  ██╗     ██████╗ ██╗  ██╗ ██╗ ███████╗                              ║
+  ║  ██╔════╝  ██║     ██╔═══██╗██║  ██║ ██║ ██╔════╝                              ║
+  ║  ██║       ██║     ██║   ██║███████║ ██║ ███████╗                              ║
+  ║  ██║       ██║     ██║   ██║██╔══██║ ██║ ╚════██║                              ║
+  ║  ███████╗ ███████╗╚██████╔╝██║  ██║ ██║ ███████║                              ║
+  ║  ╚══════╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝ ╚══════╝                              ║
+  ║                                                                            ║
+  ║         ██████╗ ███████╗███╗   ██╗███████╗ ██████╗ ██╗   ██╗                ║
+  ║        ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔═══██╗╚██╗ ██╔╝                ║
+  ║        ██║      █████╗  ██╔██╗ ██║█████╗  ██║   ██║ ╚████╔╝                 ║
+  ║        ██║      ██╔══╝  ██║╚██╗██║██╔══╝  ██║   ██║  ╚██╔╝                  ║
+  ║        ╚██████╗███████╗██║ ╚████║███████╗╚██████╔╝  ██║                     ║
+  ║         ╚═════╝╚══════╝╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═╝                     ║
+  ║                                                                            ║
+  ║              Your AI Desktop Assistant  •  v1.0.0  •  Offline              ║
+  ╚═══════════════════════════════════════════════════════════════════════════╝
 """
     panel = Panel(
         Align.center(ascii_art),
@@ -79,9 +87,9 @@ def show_status_panel(model: str, whisper: str, wake_word: str, mode: str, is_ru
 
 def show_ollama_status(is_running: bool):
     if is_running:
-        console.print("[green]●[/green] Ollama running — LLM features available")
+        console.print("[green]*[/green] Ollama running - LLM features available")
     else:
-        console.print("[yellow]●[/yellow] Ollama offline — Fast path only")
+        console.print("[yellow]*[/yellow] Ollama offline - Fast path only")
     console.print()
 
 def log_intent(path: str, intent: str, params: dict):
@@ -114,14 +122,14 @@ def stop_listening():
     if _listening_live:
         _listening_live.stop()
         _listening_live = None
-
 _thinking_live = None
 
-def show_thinking():
+
+def show_thinking(status: str = "Thinking..."):
     global _thinking_live
     if _thinking_live:
         return
-    spinner = Spinner("dots", text="Thinking...", style="bright_yellow")
+    spinner = Spinner("dots", text=status, style="bright_yellow")
     _thinking_live = Live(spinner, console=console, refresh_per_second=10, transient=True)
     _thinking_live.start()
 
@@ -156,7 +164,7 @@ def show_error(message: str):
     console.print(panel)
 
 def show_farewell():
-    text = Text("Goodbye, Aryan. See you.", justify="center", style="dim white")
+    text = Text(f"Goodbye, {USERNAME}. See you.", justify="center", style="dim white")
     panel = Panel(
         text,
         border_style="dim cyan",

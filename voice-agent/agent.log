@@ -1359,3 +1359,152 @@ Reminder set. I will remind you to take medicine today at 10:15 PM.
 
 Processing audio with duration 00:02.700
 VAD filter removed 00:01.580 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.040 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.784 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.488 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.056 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-base/revision/main "HTTP/1.1 200 OK"
+Processing audio with duration 00:02.000
+VAD filter removed 00:01.392 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:02.000 of audio
+Processing audio with duration 00:02.000
+VAD filter removed 00:00.864 of audio
+Processing audio with duration 00:05.400
+VAD filter removed 00:02.936 of audio
+Processing audio with duration 00:06.000
+VAD filter removed 00:04.400 of audio
+Processing audio with duration 00:07.800
+VAD filter removed 00:06.136 of audio
+Processing audio with duration 00:12.900
+VAD filter removed 00:06.180 of audio
+Processing audio with duration 00:04.500
+VAD filter removed 00:04.500 of audio
+Processing audio with duration 00:04.800
+VAD filter removed 00:02.848 of audio
+Opening https://www.youtube.com in chrome.
+[2026-09-20 02:13:21] INTENT=open_url             | PARAMS={'url': 'https://www.youtube.com', 'browser': 'chrome'}
+             TOOL_OUT=Opening https://www.youtube.com in chrome.                   | SPOKEN=Opening YouTube.
+
+[2026-09-20 02:13:49] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=I can help with creating folders, files, reminders, opening apps, and more. Let's choose a task together.
+
+[2026-09-20 02:13:59] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=I am here to assist you with tasks. What would you like to do?
+
+[2026-09-20 04:22:11] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+[2026-09-20 04:26:14] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+[2026-09-20 04:28:33] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+[2026-09-20 04:32:31] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=The language model took too long to respond. Please try again.
+
+[2026-09-20 04:55:19] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=I'm sorry, but I don't have the capability to send messages or interact with external applications like WhatsApp. My cur
+
+[2026-09-20 05:02:16] INTENT=unknown              | PARAMS={}
+             TOOL_OUT=(no tool called)                                             | SPOKEN=It seems there might be some confusion with the request. The system I'm interacting with is designed to handle tasks rel
+
+Message sent to Aryan Bhatnagar (AIML) on WhatsApp.
+[2026-09-20 05:12:56] INTENT=send_whatsapp        | PARAMS={'contact_name': 'Aryan Bhatnagar (AIML)', 'message': 'hello'}
+             TOOL_OUT=Message sent to Aryan Bhatnagar (AIML) on WhatsApp.          | SPOKEN=Sending message to Aryan Bhatnagar (AIML) on WhatsApp.
+
+It's 11:59 AM right now.
+[2026-09-20 11:59:49] INTENT=tell_time            | PARAMS={}
+             TOOL_OUT=It's 11:59 AM right now.                                     | SPOKEN=It is 11 59 AM right now.
+
+[2026-09-20 11:59:49] INTENT=answer_question      | PARAMS={'question': 'x'}
+             TOOL_OUT=No tool registered for intent 'answer_question'.             | SPOKEN=The capital of France is Paris.
+
+Folder created: C:\Users\Shivansh Goyal\Desktop\llm_test_folder
+[2026-09-20 11:59:49] INTENT=create_folder        | PARAMS={'path': 'C:/Users/Shivansh Goyal/Desktop/llm_test_folder'}
+             TOOL_OUT=Folder created: C:\Users\Shivansh Goyal\Desktop\llm_test_folder | SPOKEN=Creating
+
+[2026-09-20 12:03:12] INTENT=weather_check        | PARAMS={}
+             TOOL_OUT=No tool registered for intent 'weather_check'.               | SPOKEN=I don't have direct access to current weather data. You can check the weather online or through a weather app for the mo
+
+[2026-09-20 12:04:04] INTENT=farewell             | PARAMS={}
+             TOOL_OUT=No tool registered for intent 'farewell'.                    | SPOKEN=Goodbye, user.
+
