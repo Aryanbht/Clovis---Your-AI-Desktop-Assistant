@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 Clovis
+# Clovis
 
 **Your Personal AI Desktop Assistant**
 
@@ -9,244 +9,271 @@
 [![Whisper](https://img.shields.io/badge/Whisper-STT-orange.svg)](https://github.com/SYSTRAN/faster-whisper)
 [![Rich](https://img.shields.io/badge/UI-Rich-green.svg)](https://github.com/Textualize/rich)
 
-Clovis is an entirely local, voice-activated AI assistant built for Windows. 
-Powered by **Ollama** and **Faster-Whisper**, it understands natural language to control your PC, launch apps, manage files, and automate tasks — completely offline.
+Clovis is a Windows desktop assistant that combines local speech recognition, a local Ollama model, fast command routing, and direct Windows integrations.
 
 </div>
 
 ---
 
-## 📑 Table of Contents
-- [Features](#-features)
-- [System Architecture](#-system-architecture)
-- [Installation Guide](#-installation-guide)
-- [Usage & Commands](#-usage--commands)
-- [Project Structure](#-project-structure)
-- [Configuration](#-configuration)
-- [Troubleshooting](#-troubleshooting)
+## Table of Contents
+
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Installation Guide](#installation-guide)
+- [Usage & Commands](#usage--commands)
+- [Project Structure](#project-structure)
+- [Development & Testing](#development--testing)
+- [Configuration](#configuration)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## ✨ Features
-
-Clovis is designed to replace basic voice assistants by integrating directly with your local operating system and LLM infrastructure.
+## Features
 
 | Category | Capabilities |
 | :--- | :--- |
-| **🗣️ Voice Engine** | Real-time wake-word detection, robust VAD (Voice Activity Detection), and offline Whisper STT. |
-| **🖥️ App Launcher** | Zero-configuration app discovery. Scans Windows Start Menu, Microsoft Store apps, Epic Games, Steam libraries, and the Windows Registry. |
-| **⚡ Fast Path Routing** | Sub-10ms response times for common tasks via regex interception, bypassing the LLM entirely. |
-| **🧠 Local LLM** | Complex, ambiguous requests fall back to a local `qwen2.5:3b-instruct` model (or any Ollama model of your choice). |
-| **📁 OS Integration** | Take screenshots, control system volume, lock the screen, and perform deep file system operations. |
-| **🌐 Web & Tools** | Open URLs, perform web searches, send WhatsApp messages, and compose Gmail drafts. |
-| **🎨 Premium UI** | Features a `rich`-powered terminal interface with live listening indicators, dynamic status panels, and styled LLM responses. |
+| **Voice engine** | Wake-word listening, voice activity detection, and offline Faster-Whisper speech-to-text. |
+| **App launcher** | Discovers Windows Start Menu, Microsoft Store, Steam, Epic Games, and registry applications without a hardcoded app list. |
+| **Fast command routing** | Handles common time, date, math, app-launch, volume, screenshot, lock, greeting, and farewell commands without calling the LLM. |
+| **Local LLM** | Sends ambiguous or complex requests to Ollama. The default model is `qwen2.5:3b-instruct`, but another installed Ollama model can be configured. |
+| **Windows integration** | Launches applications, controls volume, locks the workstation, takes screenshots, and performs file and folder operations. |
+| **Web and messaging tools** | Opens web pages, searches the web, opens Gmail compose windows, and sends WhatsApp messages through the desktop app or web fallback. |
+| **Reminders** | Creates, lists, cancels, and snoozes reminders using Windows Task Scheduler and local notifications. |
+| **Terminal UI** | Uses Rich for status panels, listening indicators, thinking feedback, and formatted responses. |
+
+Core routing, Ollama inference, app discovery, and Windows tool execution run locally. Edge-TTS and web-based features require internet access; `pyttsx3` is available as an offline speech fallback.
 
 ---
 
-## 🏗️ System Architecture
-
-Clovis uses a sophisticated pipeline to ensure latency is kept to an absolute minimum.
-
-### High-Level Execution Flow
+## System Architecture
 
 ```mermaid
 flowchart TD
-    A([User Speaks]) --> B[Microphone / Listener]
-    B -->|Wake Word Detected| C[VAD Recording]
-    C -->|Silence Detected| D[Faster-Whisper STT]
-    D -->|Transcript| E{Router}
-    
-    E -->|Regex Match| F[Fast Path Tools]
-    E -->|No Match| G[Ollama LLM]
-    
-    G -->|JSON Intent| H[Dispatcher]
-    
-    F --> I{TTS Engine}
+    A([User input]) --> B[Listener or text input]
+    B --> C[Fast-path router]
+    C -->|Regex match| D[Direct tool action]
+    C -->|No match| E[Ollama LLM]
+    E --> F[Intent and parameter extraction]
+    F --> G[Dispatcher]
+    G --> H[Windows and web tools]
+    D --> I[Response and speech output]
     H --> I
-    
-    I -->|Edge-TTS / Pyttsx3| J([Audio Output])
 ```
 
-### The App Discovery Engine
+### App discovery
 
-The Smart App Launcher dynamically indexes your machine on startup to ensure it can launch anything you ask it to, without hardcoded lists.
+The app finder builds an index from Windows Start Menu entries, Microsoft Store apps, Steam manifests, Epic Games manifests, and the Windows Registry. The index is cached in `app_cache.json` and refreshed when it becomes stale.
 
-```mermaid
-flowchart LR
-    A[app_finder.py] --> B[(Windows Start Menu)]
-    A --> C[(Microsoft Store Apps)]
-    A --> D[(Steam Manifests)]
-    A --> E[(Epic Games)]
-    A --> F[(Windows Registry)]
-    
-    B & C & D & E & F --> G[App Cache JSON]
-    G --> H{Fuzzy Matcher}
-    H -->|Execute| I[Launch App]
-```
+### Fast-path routing
 
-### The Fast Path Routing System
+`router.py` intercepts common commands before the LLM is invoked. This keeps frequent actions responsive and allows the assistant to continue working when Ollama is unavailable.
 
-To prevent the LLM from bottlenecking simple requests, the `router.py` intercepts specific patterns instantly.
+### Speech and response pipeline
 
-```mermaid
-stateDiagram-v2
-    [*] --> Transcript
-    Transcript --> Router : Analyzes String
-    
-    state Router {
-        direction LR
-        RegexCheck: Matches "open X"?
-        RegexMath: Matches "X + Y"?
-        RegexTime: Matches "what time is it"?
-    }
-    
-    Router --> ExecuteTool : If True
-    Router --> LLM : If False
-    
-    ExecuteTool --> [*] : < 5ms latency
-    LLM --> [*] : ~2000ms latency
-```
+Voice mode uses Faster-Whisper for transcription. Responses are rendered in the terminal and sent to Edge-TTS when available, with `pyttsx3` used as a fallback.
 
 ---
 
-## 🚀 Installation Guide
+## Installation Guide
 
-Clovis requires a Windows environment with Python and Ollama installed.
+Clovis requires Windows 10 or 11, Python 3.10 or newer, and Ollama for LLM-backed requests.
 
 ### Prerequisites
 
-1. **Windows 10 or 11**
-2. **Python 3.10+**: Download from [python.org](https://www.python.org/downloads/). 
-   > [!IMPORTANT]  
-   > When installing Python, ensure you check the box that says **"Add Python to PATH"** at the bottom of the installer.
-3. **Ollama**: Download from [ollama.com](https://ollama.com). Install it and ensure it is running in your system tray.
+1. Install Python 3.10 or newer from [python.org](https://www.python.org/downloads/).
+2. During installation, enable **Add Python to PATH**.
+3. Install Ollama from [ollama.com](https://ollama.com) and make sure it is running.
+4. Allow microphone access for terminal applications in Windows privacy settings if you plan to use voice mode.
 
-### Method 1: Automatic Setup (Recommended)
+### Automatic setup
 
-1. Double-click the `install.bat` file in the project folder.
-2. The script will automatically:
-   - Create a Python virtual environment (`.venv`)
-   - Install all required libraries
-   - Pull the `qwen2.5:3b-instruct` model via Ollama.
-
-### Method 2: Manual Setup
-
-If you prefer to set up the environment manually, execute these commands in your PowerShell terminal:
+From the `voice-agent` directory, double-click `install.bat` or run:
 
 ```powershell
-# 1. Create and activate a virtual environment
+.\install.bat
+```
+
+The installer:
+
+- Creates `.venv`
+- Installs `requirements.txt`
+- Pulls `qwen2.5:3b-instruct` when Ollama is available
+
+To make the launcher available from any terminal, run:
+
+```powershell
+.\add_to_path.bat
+```
+
+Open a new terminal and run `clovis`, or double-click `clovis.bat` from the project directory.
+
+### Manual setup
+
+```powershell
 python -m venv .venv
 .\.venv\Scripts\activate
-
-# 2. Install dependencies
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-
-# 3. Pull the Ollama LLM model
 ollama pull qwen2.5:3b-instruct
 ```
 
-> [!NOTE]  
-> On your very first run, the system will automatically download the `faster-whisper` base model (approx. 70MB). 
+The first voice-mode run downloads the Faster-Whisper `base` model if it is not already cached.
 
 ---
 
-## 🎮 Usage & Commands
+## Usage & Commands
 
-### Booting the Assistant
-Use the provided batch scripts for quick access:
-- **`start_clovis.bat`**: Launches Voice Mode. The assistant idles in the background until it hears "Clovis".
-- **`start_text.bat`**: Launches Text Mode. Ideal for quiet environments.
+### Launch options
 
-Alternatively, run the interactive menu from the terminal:
-```powershell
-.\.venv\Scripts\activate
-python main.py
-```
+- **`clovis.bat`**: Shows a menu for chat, voice, direct-voice, and hybrid modes.
+- **`start_clovis.bat`**: Starts voice mode.
+- **`start_text.bat`**: Starts text mode without using the microphone.
+- **`python main.py`**: Starts the interactive mode menu.
+- **`python main.py --text`**: Types commands in the terminal.
+- **`python main.py --no-wake-word`**: Listens for voice commands immediately.
+- **`python main.py --hybrid`**: Allows typing a command or pressing Enter to speak.
 
-### Supported Commands
+The default wake phrase is `wake up`, as configured in `config.py`.
 
-Clovis supports highly flexible natural language. Try combining commands or asking ambiguous questions.
+### Example commands
 
-**System & App Control:**
-- *"Open WhatsApp"*
-- *"Launch Visual Studio Code"*
-- *"Take a screenshot"*
-- *"Lock my PC"*
-- *"Turn the volume down by 20 percent"*
+**System and applications**
 
-**File Management:**
-- *"Create a folder called 'Q3 Reports' on my desktop"*
-- *"List all files in my downloads folder"*
-- *"Delete the file named temp.txt"*
+- `open WhatsApp`
+- `launch Visual Studio Code`
+- `take a screenshot`
+- `lock my PC`
+- `turn the volume down by 20 percent`
 
-**Utilities & Web:**
-- *"What is 45 times 12?"*
-- *"Search YouTube for Python tutorials"*
-- *"Download https://example.com/file.zip"*
-- *"Draft a new email"*
+**Files**
+
+- `create a folder called Q3 Reports on my desktop`
+- `list all files in my downloads folder`
+- `delete the file named temp.txt`
+- `move notes.txt to documents`
+
+**Utilities and web**
+
+- `what is 45 times 12`
+- `what time is it`
+- `what date is it`
+- `search YouTube for Python tutorials`
+- `open Gmail`
+- `compose an email to person@example.com`
+- `send a WhatsApp message to John saying hello`
+- `remind me to drink water in 10 minutes`
+
+Natural-language requests that do not match a fast-path rule are sent to Ollama.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 voice-agent/
-├── main.py          # Central execution loop and UI menu
-├── router.py        # Fast-path regex interceptor
-├── brain.py         # LLM API wrapper and JSON parser
-├── dispatcher.py    # Maps LLM JSON intents to Python functions
-├── listener.py      # VAD, Microphone logic, and Whisper STT
-├── tts.py           # Speech synthesis (edge-tts / pyttsx3)
-├── ui.py            # Rich terminal UI components (banners, loaders)
-├── config.py        # Global settings
+├── main.py                 # Entry point and run-mode loops
+├── router.py               # Fast-path regex routing
+├── brain.py                # Ollama client and JSON extraction
+├── dispatcher.py           # Intent-to-tool dispatch
+├── listener.py             # Microphone, VAD, and Whisper STT
+├── tts.py                  # Edge-TTS and pyttsx3 output
+├── ui.py                   # Rich terminal interface
+├── config.py               # Application settings and Windows paths
+├── setup_check.py          # Environment validator
+├── reminder_trigger.py     # Scheduled reminder entry point
+├── test_extract.py         # JSON extraction tests
 ├── prompts/
-│   └── system_prompt.txt # Master prompt instructing the LLM
-└── tools/
-    ├── app_finder.py   # Advanced multi-source app discovery
-    ├── file_ops.py     # File system manipulations
-    ├── system_ops.py   # Screenshots, volume, locking
-    ├── browser.py      # Web navigation
-    └── downloader.py   # File downloading logic
+│   └── system_prompt.txt   # LLM intent schema and instructions
+├── tools/
+│   ├── app_finder.py       # Multi-source application discovery
+│   ├── browser.py          # Browser actions
+│   ├── downloader.py       # File downloads
+│   ├── file_ops.py         # File and folder operations
+│   ├── gmail.py            # Gmail browser shortcuts
+│   ├── messenger.py        # WhatsApp messaging
+│   ├── reminder.py         # Reminder management
+│   └── system_ops.py       # Volume, screenshots, and workstation actions
+└── *.bat                   # Setup, launcher, and mode scripts
 ```
+
+Runtime files such as `agent.log`, `app_cache.json`, `reminders.json`, and `clovis.lock` are generated locally and are ignored by Git.
 
 ---
 
-## ⚙️ Configuration
+## Development & Testing
 
-Tweak how Clovis behaves by editing `config.py`:
+Run the environment validator:
 
-```python
-WAKE_WORD          = "clovis"               # The trigger phrase
-OLLAMA_MODEL       = "qwen2.5:3b-instruct"  # The LLM model to query
-WHISPER_MODEL_SIZE = "base"                 # STT accuracy ('tiny', 'base', 'small')
-```
-
-### Changing the Voice
-Open `tts.py` to change the default Microsoft Edge Neural voice. 
-- Female (Default): `en-IN-NeerjaNeural`
-- Male: `en-IN-PrabhatNeural`
-
-### Environment Variables
-- **Username Override**: Clovis reads `%USERNAME%`. To override this natively, set `$env:CLOVIS_USER = "YourName"`.
-- **System Paths**: Clovis actively queries the Windows Registry to find your Desktop, Downloads, and Documents folders, meaning it supports custom mapped network drives and OneDrive seamlessly.
-
----
-
-## 🛠️ Troubleshooting
-
-Run the diagnostic script at any time to verify your system integrity:
 ```powershell
 python setup_check.py
 ```
 
-| Symptom | Diagnosis / Resolution |
+Run the JSON extraction tests:
+
+```powershell
+python test_extract.py
+```
+
+Compile-check the Python sources:
+
+```powershell
+python -m compileall .
+```
+
+Keep temporary scripts and experimental output in a `debug/` or `scratch/` directory. Those directories are ignored by Git.
+
+---
+
+## Configuration
+
+Edit `config.py` to change application behavior:
+
+```python
+USERNAME = "Your Name"
+WAKE_WORD = "wake up"
+OLLAMA_MODEL = "qwen2.5:3b-instruct"
+WHISPER_MODEL_SIZE = "base"
+```
+
+`config.py` reads the current user's Desktop, Downloads, and Documents locations from the Windows Registry and falls back to the user profile when a registry lookup fails.
+
+### Changing the speech voice
+
+Edit the voice identifiers in `tts.py`:
+
+- Female default: `en-IN-NeerjaNeural`
+- Male: `en-IN-PrabhatNeural`
+
+### Runtime data
+
+- `agent.log`: dispatcher and intent logs
+- `app_cache.json`: cached application index
+- `reminders.json`: locally stored reminders
+- `clovis.lock`: process lock used while Clovis is running
+
+These files are specific to the local installation and should not be committed.
+
+---
+
+## Troubleshooting
+
+Run the diagnostic script:
+
+```powershell
+python setup_check.py
+```
+
+| Symptom | Diagnosis or resolution |
 | :--- | :--- |
-| **Command fails with "Python not found"** | Python isn't in your PATH. Reinstall Python and check the "Add to PATH" box. |
-| **"Could not connect to Ollama"** | Ensure the Ollama app is running in your Windows System Tray. |
-| **Microphone is ignored** | Check Windows Privacy settings to ensure "Allow apps to access your microphone" is enabled. |
-| **No audio output (TTS fails)** | `edge-tts` requires an active internet connection. If offline, it falls back to `pyttsx3`. Ensure your speakers are unmuted. |
-| **ModuleNotFoundError: No module named 'rich'** | You forgot to install the dependencies. Run `pip install -r requirements.txt`. |
+| Python is not found | Add Python to PATH during installation, then open a new terminal. |
+| Ollama cannot be reached | Start Ollama and verify that port `11434` is reachable. |
+| The configured model is missing | Run `ollama pull qwen2.5:3b-instruct`. |
+| The microphone is ignored | Enable microphone access for terminal applications in Windows privacy settings. |
+| No audio is produced | Check the selected output device. Edge-TTS needs internet; `pyttsx3` can run offline. |
+| A package is missing | Run `pip install -r requirements.txt` inside `.venv`. |
+| App discovery is stale | Delete `app_cache.json`; Clovis rebuilds it on the next launch. |
+| Reminders do not fire | Check Windows Task Scheduler permissions and ensure `reminder_trigger.py` remains in the project directory. |
 
 <div align="center">
-<i>Built with ❤️ for a privacy-first, fully-local AI future.</i>
+<i>Built for a privacy-first, locally controlled AI desktop experience.</i>
 </div>

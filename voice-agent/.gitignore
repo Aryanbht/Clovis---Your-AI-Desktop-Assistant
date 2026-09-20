@@ -2,43 +2,63 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyd
+*.pyo
 *.so
 .Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+coverage.xml
+htmlcov/
+.cache/
 *.egg-info/
-.installed.cfg
-*.egg
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
 
-# Virtual Environments
-venv/
+# Virtual environments
 .venv/
+venv/
 env/
+ENV/
 .env
+.env.*
+!.env.example
 
-# IDE / Editor
+# IDE / editor
 .vscode/
 .idea/
 *.swp
 *.swo
+*.swn
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Project specific
-ARCHITECTURE.md
-CLOVIS_DOCS.md
-CHANGES.md
-
-# Runtime state / Data
-reminders.json
+# Project runtime state
+agent.log
+*.log
+*.log.*
 clovis.lock
 app_cache.json
-agent.log
+reminders.json
+*.tmp
+*.temp
+*.bak
+
+# Debug and development artifacts
+debug/
+scratch/
+tmp/
+temp/
+*.debug
+
+# Notebook and package artifacts
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+*.whl
